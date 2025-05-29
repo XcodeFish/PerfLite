@@ -11,8 +11,8 @@ graph TD
     D --> E
     E --> F[可视化控制台]
 
-    style C fill:#90EE90,stroke:#333
-    style D fill:#87CEEB,stroke:#333
+    style C fill:#228B22,stroke:#333,color:white
+    style D fill:#4169E1,stroke:#333,color:white
 ```
 
 ## 二、核心模块实现
