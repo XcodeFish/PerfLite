@@ -1,0 +1,24 @@
+{
+  "name": "perflite",
+  "version": "1.0.0",
+  "description": "```mermaid graph TD     A[SDK Core] --> B[指标采集模块]     A --> C[数据上报模块]     A --> D[可视化模块]     B --> B1(Performance API)     B --> B2(LongTask API)     B --> B3(Error Tracking)     C --> C1(节流控制)     C --> C2(批量上报)     C --> C3(失败重试)     D --> D1(火焰图)     D --> D2(时间轴)     D --> D3(指标仪表盘) ```",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XcodeFish/PerfLite.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/XcodeFish/PerfLite/issues"
+  },
+  "homepage": "https://github.com/XcodeFish/PerfLite#readme"
+}

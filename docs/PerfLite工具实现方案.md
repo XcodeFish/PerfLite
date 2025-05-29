@@ -2,6 +2,7 @@
 
 ## 一、系统架构设计
 
+```mermaid
 graph TD
     A[SDK Core] --> B[指标采集模块]
     A --> C[数据上报模块]
@@ -15,6 +16,7 @@ graph TD
     D --> D1(火焰图)
     D --> D2(时间轴)
     D --> D3(指标仪表盘)
+```
 
 ## 二、核心模块实现
 
@@ -75,6 +77,7 @@ longTaskObserver.observe({entryTypes: ['longtask']});
 
 ### 3、SourceMap解析流程
 
+```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Server
@@ -84,6 +87,7 @@ sequenceDiagram
     S->>+Parser: 解析堆栈
     Parser-->>-S: 原始代码位置
     S-->>-C: 可视化错误定位
+```
 
 ### 4、火焰图实现（D3.js核心逻辑
 
@@ -100,6 +104,18 @@ function renderFlamegraph(data) {
      .call(flameLayout);
 }
 ```
+
+### 5、后续加强方向
+
+实现性能数据异常检测算法
+开发Chrome插件调试工具
+添加Web Vitals 3.0指标支持
+构建性能基准对比系统
+
+增加"集成指南"章节：
+React/Vue框架适配方案
+微前端架构集成方案
+服务端渲染（SSR）注意事项
 
 ## 三、技术文档设计
 
