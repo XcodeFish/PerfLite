@@ -5,11 +5,13 @@ export interface IErrorInfo {
   message: string;
   stack: string;
   timestamp: number;
-  type: string;
+  type: 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'unknown';
   source?: string;
   filename?: string;
   lineno?: number;
   colno?: number;
+  url?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -40,6 +42,18 @@ export interface IPerformanceMetricRef {
 export interface IParsedError extends IErrorInfo {
   parsedStack: IStackFrame[];
   relatedMetrics?: IPerformanceMetricRef[];
+  rootCause?: string;
+  suggestions?: string[];
+  frequency?: number;
+  firstOccurrence?: number;
+  lastOccurrence?: number;
+  affectedUsers?: number;
+  isRegression?: boolean;
+  sourceMappingHints?: {
+    originalFileName: string;
+    originalLineNumber?: number;
+    originalColumnNumber?: number;
+  }[];
 }
 
 /**
@@ -49,6 +63,12 @@ export interface IErrorParserConfig {
   complexStackThreshold: number;
   sanitize: boolean;
   sourcemapSupport: boolean;
+  useDeepSeek: boolean;
+  fallbackToLocal: boolean;
+  captureUnhandledRejections: boolean;
+  captureConsoleErrors: boolean;
+  groupSimilarErrors: boolean;
+  maxStackFrames?: number;
 }
 
 /**
@@ -59,4 +79,22 @@ export interface IErrorParser {
   parseSync(stack: string): IParsedError;
   setConfig(config: Partial<IErrorParserConfig>): void;
   getConfig(): IErrorParserConfig;
+  correlateWithPerformance(error: IParsedError, metrics: IPerformanceMetricRef[]): IParsedError;
+  getSourceMapInfo(fileName: string, lineNumber: number, columnNumber: number): Promise<unknown>;
+  sanitizeErrorData(error: IParsedError): IParsedError;
+}
+
+/**
+ * 错误分组信息
+ */
+export interface IErrorGroup {
+  id: string;
+  type: string;
+  message: string;
+  count: number;
+  firstOccurrence: number;
+  lastOccurrence: number;
+  affectedUsers: Set<string>;
+  samples: IParsedError[];
+  isSolved: boolean;
 }

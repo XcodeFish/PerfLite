@@ -7,6 +7,8 @@ export interface IPerformanceMetric {
   timestamp: number;
   unit: 'ms' | 'bytes' | 'count' | 'percent';
   source?: string;
+  category?: 'navigation' | 'resource' | 'paint' | 'memory' | 'custom';
+  labels?: Record<string, string>;
 }
 
 /**
@@ -19,6 +21,11 @@ export interface INetworkMetric extends IPerformanceMetric {
   size?: number;
   duration?: number;
   initiatorType?: string;
+  transferSize?: number;
+  encodedBodySize?: number;
+  decodedBodySize?: number;
+  priority?: string;
+  protocol?: string;
 }
 
 /**
@@ -30,6 +37,32 @@ export interface ICoreWebVitals {
   CLS?: IPerformanceMetric; // Cumulative Layout Shift
   TTFB?: IPerformanceMetric; // Time To First Byte
   FCP?: IPerformanceMetric; // First Contentful Paint
+  INP?: IPerformanceMetric; // Interaction to Next Paint
+  TBT?: IPerformanceMetric; // Total Blocking Time
+}
+
+/**
+ * 内存使用指标
+ */
+export interface IMemoryMetric extends IPerformanceMetric {
+  jsHeapSizeLimit: number;
+  totalJSHeapSize: number;
+  usedJSHeapSize: number;
+  category: 'memory';
+}
+
+/**
+ * 性能时间线
+ */
+export interface IPerformanceTimeline {
+  metrics: IPerformanceMetric[];
+  errors?: unknown[];
+  sessionId: string;
+  userId?: string;
+  startTime: number;
+  endTime: number;
+  url: string;
+  userAgent?: string;
 }
 
 /**
@@ -43,6 +76,30 @@ export interface IPerformanceAnalyzerConfig {
   metricThresholds: {
     [key: string]: number;
   };
+  automaticCapture: boolean;
+  captureMemory: boolean;
+  intervalCapture?: number;
+  customMetrics?: string[];
+}
+
+/**
+ * 性能分析结果
+ */
+export interface IPerformanceAnalysisResult {
+  score: number;
+  issues: {
+    severity: 'critical' | 'warning' | 'info';
+    metric: string;
+    value: number;
+    threshold: number;
+    recommendation: string;
+  }[];
+  summary: string;
+  trends?: {
+    metric: string;
+    values: number[];
+    trend: 'improving' | 'degrading' | 'stable';
+  }[];
 }
 
 /**
@@ -55,4 +112,11 @@ export interface IPerformanceAnalyzer {
   correlateErrors(perfData: IPerformanceMetric[], errors: unknown[]): unknown[];
   setConfig(config: Partial<IPerformanceAnalyzerConfig>): void;
   getConfig(): IPerformanceAnalyzerConfig;
+  analyzePerformance(): IPerformanceAnalysisResult;
+  getTimeline(startTime: number, endTime: number): IPerformanceTimeline;
+  startAutomaticCapture(): void;
+  stopAutomaticCapture(): void;
+  getResourceMetrics(): INetworkMetric[];
+  getMemoryMetrics(): IMemoryMetric[];
+  clearMetrics(): void;
 }

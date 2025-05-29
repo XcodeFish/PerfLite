@@ -44,10 +44,7 @@ export * from './parser';
 export * from './plugin';
 
 // 导出API计数器相关类型
-export { IAPICounterStatus, IAPICounter } from './api-counter';
-
-// 重新导出API计数器配置（解决命名冲突）
-export { IAPICounterConfig as IAPICounterSettings } from './api-counter';
+export { IAPICounterStatus, IAPICounter, IAPICounterConfig } from './api-counter';
 
 // PerfLite主接口
 import { IErrorParser } from './error';
@@ -57,6 +54,7 @@ import { ICacheSystem } from './cache';
 import { IPluginManager } from './plugin';
 import { IAPICounter } from './api-counter';
 import { IPerfLiteConfig } from './config';
+import { IWasmParser, IDeepSeekClient } from './parser';
 
 /**
  * PerfLite SDK主接口
@@ -98,6 +96,16 @@ export interface IPerfLite {
   getAPICounter(): IAPICounter;
 
   /**
+   * 获取WASM解析器实例
+   */
+  getWasmParser(): IWasmParser;
+
+  /**
+   * 获取DeepSeek客户端实例
+   */
+  getDeepSeekClient(): IDeepSeekClient;
+
+  /**
    * 手动捕获错误
    */
   captureError(error: Error | string): Promise<string>;
@@ -116,6 +124,26 @@ export interface IPerfLite {
    * 禁用SDK
    */
   disable(): void;
+
+  /**
+   * 添加自定义上下文
+   */
+  addContext(key: string, value: unknown): void;
+
+  /**
+   * 设置用户信息
+   */
+  setUser(id: string, data?: Record<string, unknown>): void;
+
+  /**
+   * 获取SDK版本
+   */
+  getVersion(): string;
+
+  /**
+   * 创建自定义仪表盘
+   */
+  createDashboard(container: HTMLElement, config: unknown): unknown;
 
   /**
    * 销毁SDK实例

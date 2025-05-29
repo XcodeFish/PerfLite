@@ -8,18 +8,46 @@ export interface IChartData {
   metrics?: IPerformanceMetric[];
   errors?: IParsedError[];
   correlations?: unknown[];
+  custom?: Record<string, unknown>;
+  timestamp?: number;
+  timeRange?: {
+    start: number;
+    end: number;
+  };
 }
 
 /**
  * 图表选项类型
  */
 export interface IChartOptions {
-  type: 'sankey' | 'heatmap' | 'line' | 'bar';
+  type:
+    | 'sankey'
+    | 'heatmap'
+    | 'line'
+    | 'bar'
+    | 'pie'
+    | 'timeline'
+    | 'scatter'
+    | 'gauge'
+    | 'treemap';
   theme: 'light' | 'dark' | 'auto';
   title?: string;
   subtitle?: string;
   dimensions?: { width: number; height: number };
   animate?: boolean;
+  legend?: boolean;
+  tooltip?: boolean;
+  zoom?: boolean;
+  colors?: string[];
+  axisLabels?: {
+    x?: string;
+    y?: string;
+  };
+  thresholds?: {
+    good: number;
+    warning: number;
+    critical: number;
+  };
 }
 
 /**
@@ -31,6 +59,34 @@ export interface IRenderer {
   update(data: IChartData): void;
   resize(dimensions: { width: number; height: number }): void;
   destroy(): void;
+  toDataURL(): string;
+  getPerformance(): {
+    fps: number;
+    renderTime: number;
+    memoryUsage?: number;
+  };
+  enableAnimation(enable: boolean): void;
+}
+
+/**
+ * WebGL渲染器特有接口
+ */
+export interface IWebGLRenderer extends IRenderer {
+  setPixelRatio(ratio: number): void;
+  setClearColor(color: string): void;
+  setAntialiasing(enable: boolean): void;
+  getBoundingClientRect(): DOMRect;
+  getContext(): WebGLRenderingContext | null;
+}
+
+/**
+ * Canvas渲染器特有接口
+ */
+export interface ICanvasRenderer extends IRenderer {
+  setLineWidth(width: number): void;
+  setCompositeOperation(operation: string): void;
+  getBoundingClientRect(): DOMRect;
+  getContext(): CanvasRenderingContext2D | null;
 }
 
 /**
@@ -40,6 +96,9 @@ export interface IChartAdapter {
   createChart(container: HTMLElement, options: IChartOptions): unknown;
   updateChart(chart: unknown, data: IChartData): void;
   disposeChart(chart: unknown): void;
+  getAvailableChartTypes(): string[];
+  exportChart(chart: unknown, type: 'png' | 'jpg' | 'svg'): string;
+  setTheme(chart: unknown, theme: string): void;
 }
 
 /**
@@ -48,10 +107,32 @@ export interface IChartAdapter {
 export interface IDashboardItemConfig {
   id: string;
   title: string;
-  type: 'sankey' | 'heatmap' | 'line' | 'bar';
+  type:
+    | 'sankey'
+    | 'heatmap'
+    | 'line'
+    | 'bar'
+    | 'pie'
+    | 'timeline'
+    | 'scatter'
+    | 'gauge'
+    | 'treemap';
   dataSource: string;
   dimensions: { width: number; height: number };
   position: { x: number; y: number };
+  refreshInterval?: number;
+  drilldown?: boolean;
+  filter?: string;
+  thresholds?: {
+    good: number;
+    warning: number;
+    critical: number;
+  };
+  actions?: {
+    id: string;
+    label: string;
+    callback: string;
+  }[];
 }
 
 /**
@@ -63,6 +144,47 @@ export interface IDashboardConfig {
   items: IDashboardItemConfig[];
   theme: 'light' | 'dark' | 'auto';
   refreshInterval?: number;
+  autoAdjust?: boolean;
+  defaultTimeRange?: {
+    start: number;
+    end: number;
+  };
+  filters?: {
+    id: string;
+    label: string;
+    type: 'dropdown' | 'search' | 'date' | 'range';
+    options?: string[];
+    default?: string;
+  }[];
+  exportOptions?: {
+    formats: ('png' | 'jpg' | 'svg' | 'pdf' | 'json')[];
+  };
+}
+
+/**
+ * 数据转换器接口
+ */
+export interface IDataTransformer {
+  transform(data: unknown, options?: Record<string, unknown>): IChartData;
+  getSchema(): Record<string, string>;
+  validate(data: unknown): boolean;
+}
+
+/**
+ * 交互事件类型
+ */
+export interface IChartEvent {
+  type: 'click' | 'hover' | 'zoom' | 'filter' | 'drilldown';
+  target?: {
+    type: string;
+    id: string;
+    value?: unknown;
+  };
+  position?: {
+    x: number;
+    y: number;
+  };
+  data?: unknown;
 }
 
 /**
@@ -75,4 +197,19 @@ export interface IVisualization {
   updateChart(chart: unknown, data: IChartData): void;
   setTheme(theme: 'light' | 'dark' | 'auto'): void;
   destroy(): void;
+  exportDashboard(format: 'png' | 'jpg' | 'svg' | 'pdf' | 'json'): Promise<string>;
+  registerCustomChart(type: string, renderer: IRenderer): void;
+  addEventListener(type: string, callback: (event: IChartEvent) => void): void;
+  removeEventListener(type: string, callback: (event: IChartEvent) => void): void;
+  getDashboardData(): IChartData;
+  getDashboardConfig(): IDashboardConfig;
+  setTimeRange(start: number, end: number): void;
+  applyFilter(filter: Record<string, unknown>): void;
+  createDataTransformer(options: Record<string, unknown>): IDataTransformer;
+  getPerformanceStats(): {
+    fps: number;
+    renderTime: number;
+    memoryUsage?: number;
+    elements: number;
+  };
 }

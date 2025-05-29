@@ -7,6 +7,10 @@ export interface ICacheItem<T> {
   timestamp: number;
   ttl: number;
   size?: number;
+  lastAccessed?: number;
+  metadata?: Record<string, unknown>;
+  priority?: number;
+  compressed?: boolean;
 }
 
 /**
@@ -21,6 +25,12 @@ export interface IMemoryCache<T = unknown> {
   size(): number;
   keys(): string[];
   getStats(): IMemoryCacheStats;
+  prune(): number;
+  setMaxSize(size: number): void;
+  updateTTL(key: string, ttl: number): boolean;
+  setPriority(key: string, priority: number): boolean;
+  getOldestItem(): ICacheItem<T> | null;
+  getNewestItem(): ICacheItem<T> | null;
 }
 
 /**
@@ -32,6 +42,11 @@ export interface IMemoryCacheStats {
   hits: number;
   misses: number;
   hitRate: number;
+  oldestTimestamp?: number;
+  newestTimestamp?: number;
+  averageAge?: number;
+  memoryUsage?: number;
+  evictions?: number;
 }
 
 /**
@@ -46,6 +61,10 @@ export interface IStorage<T = unknown> {
   size(): Promise<number>;
   keys(): Promise<string[]>;
   getStats(): Promise<IStorageStats>;
+  setMaxSize(size: number): Promise<void>;
+  compact(): Promise<number>;
+  exportData(): Promise<Record<string, ICacheItem<T>>>;
+  importData(data: Record<string, ICacheItem<T>>): Promise<number>;
 }
 
 /**
@@ -56,6 +75,10 @@ export interface IStorageStats {
   count: number;
   oldestItem?: ICacheItem<unknown>;
   newestItem?: ICacheItem<unknown>;
+  averageSize?: number;
+  compressionRatio?: number;
+  availableSpace?: number;
+  lastCompaction?: number;
 }
 
 /**
@@ -64,9 +87,35 @@ export interface IStorageStats {
 export interface ICacheSystem {
   get<T>(key: string): Promise<T | null>;
   getSync<T>(key: string): T | null;
-  set<T>(key: string, value: T, options?: { memoryOnly?: boolean; ttl?: number }): Promise<boolean>;
+  set<T>(
+    key: string,
+    value: T,
+    options?: {
+      memoryOnly?: boolean;
+      ttl?: number;
+      priority?: number;
+      compress?: boolean;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<boolean>;
   delete(key: string): Promise<boolean>;
   clear(): Promise<void>;
   preCacheFrameworks(frameworks: string[]): Promise<void>;
   getStats(): Promise<{ memory: IMemoryCacheStats; storage: IStorageStats }>;
+  exportCache(): Promise<string>;
+  importCache(data: string): Promise<boolean>;
+  setStrategy(strategy: 'lru' | 'fifo' | 'lfu'): void;
+  optimize(): Promise<void>;
+  subscribe(callback: (event: ICacheEvent) => void): () => void;
+}
+
+/**
+ * 缓存事件类型
+ */
+export interface ICacheEvent {
+  type: 'hit' | 'miss' | 'set' | 'delete' | 'clear' | 'evict' | 'error';
+  key?: string;
+  source: 'memory' | 'storage';
+  timestamp: number;
+  metadata?: Record<string, unknown>;
 }

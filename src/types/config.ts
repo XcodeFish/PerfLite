@@ -8,6 +8,10 @@ export interface IDeepSeekConfig {
   fallback: 'local' | 'none';
   rateLimit: number;
   quotaMode?: 'economy' | 'standard';
+  maxTokens?: number;
+  timeout?: number;
+  retryCount?: number;
+  retryDelay?: number;
 }
 
 /**
@@ -20,6 +24,9 @@ export interface ICacheConfig {
   diskTTL: number;
   maxDiskSize: string;
   precache?: string[];
+  compression?: boolean;
+  strategy?: 'lru' | 'fifo' | 'lfu';
+  storageType?: 'indexeddb' | 'localstorage' | 'none';
 }
 
 /**
@@ -33,6 +40,54 @@ export interface IVisualizationConfig {
   renderEngine?: 'canvas' | 'webgl';
   autoRefresh: boolean;
   refreshInterval: number;
+  customColors?: Record<string, string>;
+  dashboard?: {
+    layout: 'grid' | 'free';
+    widgets: {
+      id: string;
+      type: string;
+      position: { x: number; y: number };
+      size: { width: number; height: number };
+      dataSource: string;
+    }[];
+  };
+}
+
+/**
+ * 安全配置选项
+ */
+export interface ISecurityConfig {
+  sanitize: boolean;
+  anonymizeIp: boolean;
+  allowedDomains: string[];
+  disableSensitiveData: boolean;
+  httpsOnly: boolean;
+  maxReportSize?: number;
+}
+
+/**
+ * 上报配置选项
+ */
+export interface IReportingConfig {
+  endpoint?: string;
+  batchSize: number;
+  batchInterval: number;
+  retryCount: number;
+  retryDelay: number;
+  maxReportsPerPage: number;
+  sendBeacon?: boolean;
+  compression?: boolean;
+  timeout?: number;
+}
+
+/**
+ * 采样配置选项
+ */
+export interface ISamplingConfig {
+  errorSamplingRate: number;
+  performanceSamplingRate: number;
+  userSamplingRate: number;
+  samplingMethod: 'random' | 'consistent' | 'adaptive';
 }
 
 /**
@@ -41,6 +96,7 @@ export interface IVisualizationConfig {
 export interface IAPICounterConfig {
   maxFree: number;
   resetPeriod: 'daily' | 'monthly' | 'never';
+  storageKey?: string;
 }
 
 /**
@@ -53,9 +109,14 @@ export interface IPerfLiteConfig {
   reportURI?: string;
   errorCapture: boolean;
   performanceCapture: boolean;
+  environment?: 'production' | 'development' | 'staging' | 'test';
+  version?: string;
   deepseek: IDeepSeekConfig;
   cache: ICacheConfig;
   visualization: IVisualizationConfig;
   plugins?: Record<string, unknown>;
   apiCounter?: IAPICounterConfig;
+  security?: ISecurityConfig;
+  reporting?: IReportingConfig;
+  sampling?: ISamplingConfig;
 }
