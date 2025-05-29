@@ -1,14 +1,21 @@
-// src/core/Visualization.ts
+// 为全局Window接口添加ECharts声明
+declare global {
+  interface Window {
+    ECharts?: any;
+  }
+}
 
 import LRUCache from 'lru-cache';
 
 class Visualization {
   private canvas: HTMLCanvasElement | null;
   private charts: any[]; // 保存生成的图表引用
+  private chartLib: any; // 图表库引用
 
   constructor() {
     this.canvas = null;
     this.charts = [];
+    this.chartLib = typeof window !== 'undefined' && 'ECharts' in window ? window.ECharts : null;
   }
 
   public init(element: string | HTMLElement): Visualization {
@@ -27,6 +34,11 @@ class Visualization {
   }
 
   renderDashboard(data: any) {
+    if (!this.chartLib) {
+      console.warn('Chart library not found');
+      return null;
+    }
+
     return this.chartLib.init().setOption({
       series: [
         {
@@ -38,7 +50,8 @@ class Visualization {
   }
 
   private _processErrorFlow(data: any) {
-    // 实现错误溯源关系处理
+    // 简单实现，后续完善
+    return data || [];
   }
 }
 

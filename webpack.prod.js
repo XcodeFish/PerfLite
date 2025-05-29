@@ -5,13 +5,19 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const path = require('path');
 
-// 基本生产配置
-const prodConfig = {
+// 生产配置
+module.exports = merge(common, {
   mode: 'production',
   devtool: 'source-map',
   output: {
+    path: path.resolve(__dirname, 'dist'),
     filename: 'perflite.min.js',
     sourceMapFilename: 'perflite.min.js.map',
+    library: {
+      type: 'umd',
+      name: 'PerfLite',
+    },
+    globalObject: 'this',
   },
   optimization: {
     minimize: true,
@@ -49,34 +55,4 @@ const prodConfig = {
     maxEntrypointSize: 250000,
     maxAssetSize: 250000,
   },
-};
-
-// ESM构建配置
-const esmConfig = merge({}, common, {
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'perflite.esm.js',
-    library: {
-      type: 'module',
-    },
-  },
-  experiments: {
-    outputModule: true,
-  },
 });
-
-// 默认导出UMD构建
-module.exports = merge(common, prodConfig);
-
-// 导出配置数组，支持多种格式输出
-module.exports = [
-  merge(common, prodConfig), // UMD
-  merge(esmConfig, prodConfig, {
-    output: {
-      filename: 'perflite.esm.js',
-      library: {
-        type: 'module',
-      },
-    },
-  }), // ESM
-]; 
