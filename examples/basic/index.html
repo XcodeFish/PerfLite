@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PerfLite 示例</title>
+    <script src="../dist/perflite.js"></script>
+</head>
+<body>
+    <h1>前端性能监控SDK「PerfLite」示例</h1>
+    <script>
+        // 初始化PerfLite
+        PerfLite.init({
+            appId: 'YOUR_APP_ID',
+            deepseek: {
+                enable: true,
+                fallback: 'local',
+                rateLimit: 0.3
+            },
+            cache: {
+                maxDiskSize: '5MB',
+                precache: ['react', 'vue']
+            },
+            visualization: {
+                theme: 'dark',
+                maxDataPoints: 5000,
+                chartType: 'sankey'
+            }
+        });
+
+        // 模拟错误
+        function simulateError() {
+            throw new Error("模拟错误");
+        }
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            PerfLite.captureError(error);
+        };
+
+        // 触发错误
+        document.getElementById('trigger-error').onclick = simulateError;
+    </script>
+    <button id="trigger-error">触发错误</button>
+</body>
+</html>

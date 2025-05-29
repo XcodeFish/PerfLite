@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# 临时注释掉commitlint，后续解决配置问题后再启用
+# npx --no-install commitlint --edit $1

@@ -1,0 +1,254 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# PerfLite项目开发规范
+
+# 通用规范
+- 项目采用 docs目录下 PerfLite完整方案，开发之前请阅读此文档
+- 使用typescript
+- 输出不超出token，内部分成几个部分一一输出
+- 项目使用pnpm
+
+# 项目架构规范
+- 遵循混合架构设计：客户端SDK、WASM本地解析器和DeepSeek-V3社区版
+- 模块化开发，确保各核心模块（错误解析、性能分析、可视化）职责明确
+- 总体积控制在5KB以内（gzip后）
+
+# 代码结构规范
+```text
+src/
+├── core/                          # 核心监控逻辑
+│   ├── index.ts                   # 导出核心模块
+│   ├── ErrorParser.ts             # 错误解析器
+│   ├── PerformanceAnalyzer.ts     # 性能分析器
+│   ├── Visualization.ts           # 可视化引擎
+│   └── APICounter.ts              # API计数器
+├── parser/                        # 解析器模块
+│   ├── index.ts                   # 导出解析器
+│   ├── wasm/                      # WASM本地解析器
+│   │   ├── index.ts               # WASM封装
+│   │   └── loader.ts              # WASM加载器
+│   └── deepseek/                  # 智能API调用
+│       ├── index.ts               # DeepSeek封装
+│       └── client.ts              # API客户端
+├── cache/                         # 缓存系统
+│   ├── index.ts                   # 导出缓存系统
+│   ├── memory.ts                  # 内存缓存实现
+│   └── storage.ts                 # 持久化存储实现
+├── visualization/                 # 可视化引擎
+│   ├── index.ts                   # 导出可视化模块
+│   ├── dashboard.ts               # 仪表盘实现
+│   ├── chart-adapter.ts           # 图表适配器
+│   └── renderers/                 # 渲染器
+│       ├── webgl.ts               # WebGL渲染器
+│       └── canvas.ts              # Canvas渲染器
+├── plugins/                       # 插件系统
+│   ├── index.ts                   # 插件管理器
+│   ├── interface.ts               # 插件接口定义
+│   └── built-in/                  # 内置插件
+│       ├── memory-monitor.ts      # 内存监控插件
+│       └── react-profiler.ts      # React性能分析插件
+├── utils/                         # 工具函数
+│   ├── index.ts                   # 导出工具函数
+│   ├── cache.ts                   # 缓存工具
+│   ├── sanitize.ts                # 数据脱敏工具
+│   ├── compress.ts                # 压缩工具
+│   └── browser.ts                 # 浏览器兼容工具
+├── types/                         # 类型定义
+│   ├── index.ts                   # 导出所有类型
+│   ├── error.ts                   # 错误相关类型
+│   ├── perf.ts                    # 性能相关类型
+│   └── config.ts                  # 配置相关类型
+└── index.ts                       # 入口文件
+```
+
+# WASM结构规范
+```text
+rust/
+├── src/
+│   ├── lib.rs                     # 入口文件
+│   ├── parser.rs                  # 解析器实现
+│   ├── simd.rs                    # SIMD优化实现
+│   └── utils.rs                   # 工具函数
+├── benches/                       # 性能基准测试
+│   └── parser_benchmark.rs        # 解析器性能测试
+├── tests/                         # 单元测试
+│   └── parser_tests.rs            # 解析器测试
+├── Cargo.toml                     # 依赖配置
+└── build.sh                       # 构建脚本
+```
+
+# 测试目录结构规范
+```text
+tests/
+├── core/                          # 核心模块测试
+│   ├── ErrorParser.test.ts        # 错误解析器测试
+│   ├── PerformanceAnalyzer.test.ts # 性能分析器测试
+│   └── Visualization.test.ts      # 可视化引擎测试
+├── parser/                        # 解析器测试
+│   ├── wasm.test.ts               # WASM解析器测试
+│   └── deepseek.test.ts           # DeepSeek API测试
+├── cache/                         # 缓存系统测试
+│   ├── memory.test.ts             # 内存缓存测试
+│   └── storage.test.ts            # 持久化存储测试
+├── integration/                   # 集成测试
+│   ├── error-handling.test.ts     # 错误处理测试
+│   └── performance.test.ts        # 性能测试
+└── e2e/                           # 端到端测试
+    ├── browser.test.ts            # 浏览器环境测试
+    └── visualization.test.ts      # 可视化功能测试
+```
+
+# 示例目录结构规范
+```text
+examples/
+├── basic/                         # 基础示例
+│   ├── index.html                 # 基础用法
+│   └── basic.js                   # 基础脚本
+├── advanced/                      # 进阶示例
+│   ├── index.html                 # 进阶用法
+│   └── advanced.js                # 进阶脚本
+├── plugins/                       # 插件示例
+│   ├── index.html                 # 插件用法
+│   └── custom-plugin.js           # 自定义插件
+└── visualization/                 # 可视化示例
+    ├── index.html                 # 可视化用法
+    └── dashboard.js               # 仪表盘脚本
+```
+
+# 命名规范
+- 类名：使用PascalCase（如ErrorParser）
+- 方法/变量：使用camelCase（如parseStack）
+- 常量：使用UPPER_SNAKE_CASE（如MAX_FREE）
+- 文件名：使用kebab-case（如error-parser.ts）
+- 接口名：使用PascalCase并以I开头（如IPlugin）
+- 类型名：使用PascalCase并以T开头（如TConfig）
+## 命名原则
+- 具有描述性，避免使用缩写（除非是常见缩写）
+- 方法名应当是动词或动词短语
+- 布尔值变量/方法应当使用is/has/can等前缀
+- 避免单字母变量名（除了循环计数器）
+
+# 代码风格规范
+- 使用2个空格进行缩进
+- 每行代码不超过100个字符
+- 始终使用分号结束语句
+- 使用单引号定义字符串
+- 箭头函数参数始终使用括号
+- 对象和数组的最后一项后面可以有逗号
+- 使用ES6+语法
+- 函数优先使用箭头函数
+- 异步操作使用async/await
+- 优先使用const和let
+- 注释必须说明功能、参数和返回值
+## 代码结构
+相关的代码应当放在一起
+将大型函数拆分为小函数
+避免嵌套过深的代码块（最多3层）
+
+
+# TypeScript规范
+
+## 类型定义
+为所有公共API提供类型定义
+避免使用any类型
+优先使用接口而不是类型别名
+导出所有公共类型
+
+## 泛型
+泛型参数使用有意义的名称
+限制泛型参数的类型范围
+
+## 错误处理
+使用try-catch块捕获异常
+异步函数返回Promise，并在出错时reject
+避免吞掉错误，始终进行处理或转发
+
+# 注释规范
+
+## 基本规则
+所有公共API需要JSDoc注释
+复杂的代码块需要添加注释
+避免写显而易见的注释
+注释必须说明功能、参数和返回值
+
+## JSDoc格式
+使用标准JSDoc格式
+描述函数功能、参数和返回值
+记录可能抛出的异常
+
+# 模块规范
+
+## 导入导出
+按照字母顺序组织导入语句
+优先使用命名导出而非默认导出
+避免通配符导入（import * as）
+
+## 模块组织
+每个文件只导出一个类或功能组
+相关功能应当放在同一个目录下
+避免循环依赖
+
+# WASM开发规范
+
+## Rust代码规范
+- Rust代码放置在`rust/`目录
+- 遵循Rust官方风格指南
+- 使用cargo fmt格式化代码
+- 使用cargo clippy进行静态分析
+- 确保WASM模块经过wasm-gc优化
+
+## WASM优化
+- 实现SIMD加速的解析器版本
+- 避免大型依赖
+- 优先使用SIMD加速
+- 导出最小化的接口
+- WASM模块总体积控制在100KB以内
+
+# 性能优化规范
+
+## 一般原则
+避免不必要的计算和内存分配
+使用缓存减少重复计算
+懒加载非核心功能
+使用LRU算法实现内存缓存
+采用IndexedDB实现持久化存储
+大数据量可视化采用WebGL渲染+数据分片
+实时更新使用差异对比算法+Canvas局部刷新
+
+## SDK特定优化
+总体积控制在5KB以内（gzip后）
+使用Tree Shaking友好的写法
+避免直接依赖大型库
+
+# 安全规范
+- 实现Source Map安全协议
+- 所有用户数据进行脱敏处理
+- 强制使用HTTPS增强策略
+- 不收集敏感信息（密码、token等）
+
+# 测试规范
+- 单元测试覆盖率>80%
+- 压力测试支持10万次/分钟的处理能力
+- 兼容性测试覆盖主流浏览器
+- 内存泄漏测试确保长时间运行稳定
+
+# 文档规范
+- 每个模块必须有对应README.md
+- 核心API必须有TSDoc注释
+- 示例代码必须涵盖常见使用场景
+- 更新日志必须记录版本变更
+
+# 发布规范
+- 遵循语义化版本
+- 提供minified和non-minified两个版本
+- 支持npm和CDN两种引入方式
+- 确保Tree Shaking友好
+
+# 插件开发规范
+- 插件必须实现标准接口
+- 插件不得修改核心功能
+- 插件必须有详细文档和示例代码
+- 性能影响必须在文档中说明
