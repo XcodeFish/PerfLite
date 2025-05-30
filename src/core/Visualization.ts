@@ -5,25 +5,24 @@ declare global {
   }
 }
 
-import LRUCache from 'lru-cache';
-
 class Visualization {
-  private canvas: HTMLCanvasElement | null;
-  private charts: any[]; // 保存生成的图表引用
   private chartLib: any; // 图表库引用
 
   constructor() {
-    this.canvas = null;
-    this.charts = [];
     this.chartLib = typeof window !== 'undefined' && 'ECharts' in window ? window.ECharts : null;
   }
 
   public init(element: string | HTMLElement): Visualization {
     // 初始化可视化引擎
-    this.canvas =
+    const canvas =
       typeof element === 'string'
         ? (document.getElementById(element) as HTMLCanvasElement)
         : (element as HTMLCanvasElement);
+
+    // 进行canvas相关初始化
+    if (canvas) {
+      console.log('Canvas initialized:', canvas.id || 'unnamed');
+    }
 
     return this;
   }

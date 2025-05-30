@@ -64,8 +64,8 @@ export class PerformanceAnalyzer {
               name: entry.name,
               value: entry.startTime,
               timestamp: performance.now(),
-              category: 'paint',
               unit: 'ms',
+              metadata: { type: 'paint' },
             });
           }
         });

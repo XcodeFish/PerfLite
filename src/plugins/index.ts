@@ -1,19 +1,26 @@
-// src/plugins/index.ts
+import { Plugin } from '@/types';
+
+interface PluginEntry {
+  name: string;
+  plugin: Plugin;
+}
 
 class PluginManager {
+  private plugins: PluginEntry[] = [];
+
   constructor() {
-    this.plugins = [];
+    // 初始化插件列表
   }
 
-  registerPlugin(name, plugin) {
+  registerPlugin(name: string, plugin: Plugin): void {
     this.plugins.push({ name, plugin });
   }
 
-  getPlugins() {
+  getPlugins(): PluginEntry[] {
     return this.plugins;
   }
 
-  applyPlugins(data) {
+  applyPlugins(data: unknown): void {
     this.plugins.forEach(({ plugin }) => {
       if (typeof plugin.beforeSend === 'function') {
         plugin.beforeSend(data);

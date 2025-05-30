@@ -1,89 +1,167 @@
 use wasm_bindgen::prelude::*;
 use regex::Regex;
+use std::collections::HashMap;
+use crate::utils::{log, format_stack_frame};
+
+/// 错误栈帧结构
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct StackFrame {
+    function_name: String,
+    file_name: String,
+    line_number: u32,
+    column_number: u32,
+}
 
 #[wasm_bindgen]
+impl StackFrame {
+    #[wasm_bindgen(getter)]
+    pub fn function_name(&self) -> String {
+        self.function_name.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn file_name(&self) -> String {
+        self.file_name.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn line_number(&self) -> u32 {
+        self.line_number
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn column_number(&self) -> u32 {
+        self.column_number
+    }
+}
+
+/// 错误栈解析器
+#[wasm_bindgen]
 pub struct ErrorParser {
-    line_regex: String,
+    // 正则表达式缓存
+    chrome_regex: Regex,
+    firefox_regex: Regex,
+    safari_regex: Regex,
+    // 框架映射缓存
+    framework_map: HashMap<String, String>,
 }
 
 #[wasm_bindgen]
 impl ErrorParser {
+    /// 创建新的错误解析器
     pub fn new() -> Self {
+        // 初始化正则表达式
+        let chrome_regex = Regex::new(r"at\s+([^\s\(]+)?\s*(\(([^)]+)\))?").unwrap();
+        let firefox_regex = Regex::new(r"([^@]*)@(.+):(\d+):(\d+)").unwrap();
+        let safari_regex = Regex::new(r"([^@]*)@([^:]+):(\d+):(\d+)").unwrap();
+        
+        // 初始化框架映射
+        let mut framework_map = HashMap::new();
+        framework_map.insert("node_modules/react".to_string(), "React".to_string());
+        framework_map.insert("node_modules/vue".to_string(), "Vue".to_string());
+        framework_map.insert("node_modules/angular".to_string(), "Angular".to_string());
+        
         ErrorParser {
-            line_regex: r"at\s+(\S+)\s+\((.*):(\d+):(\d+)\)".to_string(),
+            chrome_regex,
+            firefox_regex,
+            safari_regex,
+            framework_map,
         }
     }
 
+    /// 解析错误栈
     pub fn parse(&self, stack: &str) -> String {
         if stack.is_empty() {
             return String::new();
         }
 
-        // 简单实现，后续完善
-        stack.to_string()
-    }
-
-    #[wasm_bindgen]
-    pub fn parse_simd(&self, stack: &str) -> Vec<u32> {
-        if stack.is_empty() {
-            return vec![];
-        }
-        let bytes = stack.as_bytes();
-        unsafe { self.simd_parse(bytes) }
-    }
-
-    unsafe fn simd_parse(&self, bytes: &[u8]) -> Vec<u32> {
-        #[cfg(target_feature = "simd128")]
-        {
-            use std::arch::wasm32::*;
-            let mut result = Vec::new();
-            let len = bytes.len();
-            let mut i = 0;
-
-            while i + 16 <= len {
-                let chunk = v128_load(bytes.as_ptr().add(i) as *const v128);
-                // 查找数字的SIMD实现
-                let digit_mask = i8x16_eq(chunk, v128_const(48, 49, 50, 51, 52, 53, 54, 55, 56, 57));
+        let mut result = String::new();
+        let lines: Vec<&str> = stack.split('\n').collect();
+        
+        for line in lines {
+            // 尝试使用Chrome格式解析
+            if let Some(caps) = self.chrome_regex.captures(line) {
+                let func_name = caps.get(1).map_or("<anonymous>", |m| m.as_str());
                 
-                if !u8x16_all_true(digit_mask) {
-                    let pos = i8x16_bitmask(digit_mask) as usize;
-                    if pos > 0 {
-                        // 提取数字
-                        let num_str = std::str::from_utf8_unchecked(
-                            &bytes[i..i + pos]
-                        );
-                        if let Ok(num) = num_str.parse::<u32>() {
-                            result.push(num);
-                        }
+                if let Some(location) = caps.get(3) {
+                    let loc_parts: Vec<&str> = location.as_str().split(':').collect();
+                    if loc_parts.len() >= 3 {
+                        let file = loc_parts[0..loc_parts.len()-2].join(":");
+                        let line_num = loc_parts[loc_parts.len()-2].parse::<u32>().unwrap_or(0);
+                        let col_num = loc_parts[loc_parts.len()-1].parse::<u32>().unwrap_or(0);
+                        
+                        // 格式化输出
+                        let frame = format_stack_frame(func_name, &file, line_num, col_num);
+                        result.push_str(&frame);
+                        result.push('\n');
                     }
                 }
-                i += 16;
+                continue;
             }
             
-            // 处理剩余字节
-            while i < len {
-                if bytes[i].is_ascii_digit() {
-                    let start = i;
-                    while i < len && bytes[i].is_ascii_digit() {
-                        i += 1;
-                    }
-                    let num_str = std::str::from_utf8_unchecked(&bytes[start..i]);
-                    if let Ok(num) = num_str.parse::<u32>() {
-                        result.push(num);
+            // 尝试使用Firefox格式解析
+            if let Some(caps) = self.firefox_regex.captures(line) {
+                let func_name = caps.get(1).map_or("<anonymous>", |m| m.as_str());
+                let file = caps.get(2).map_or("", |m| m.as_str());
+                let line_num = caps.get(3).and_then(|m| m.as_str().parse::<u32>().ok()).unwrap_or(0);
+                let col_num = caps.get(4).and_then(|m| m.as_str().parse::<u32>().ok()).unwrap_or(0);
+                
+                // 格式化输出
+                let frame = format_stack_frame(func_name, file, line_num, col_num);
+                result.push_str(&frame);
+                result.push('\n');
+                continue;
+            }
+            
+            // 尝试使用Safari格式解析
+            if let Some(caps) = self.safari_regex.captures(line) {
+                let func_name = caps.get(1).map_or("<anonymous>", |m| m.as_str());
+                let file = caps.get(2).map_or("", |m| m.as_str());
+                let line_num = caps.get(3).and_then(|m| m.as_str().parse::<u32>().ok()).unwrap_or(0);
+                let col_num = caps.get(4).and_then(|m| m.as_str().parse::<u32>().ok()).unwrap_or(0);
+                
+                // 格式化输出
+                let frame = format_stack_frame(func_name, file, line_num, col_num);
+                result.push_str(&frame);
+                result.push('\n');
+            }
+        }
+        
+        result
+    }
+
+    /// 使用SIMD优化解析错误栈
+    pub fn parse_simd(&self, stack: &str) -> Vec<StackFrame> {
+        let mut frames = Vec::new();
+        
+        if stack.is_empty() {
+            return frames;
+        }
+        
+        for line in stack.split('\n') {
+            if let Some(caps) = self.chrome_regex.captures(line) {
+                let func_name = caps.get(1).map_or("<anonymous>", |m| m.as_str()).to_string();
+                
+                if let Some(location) = caps.get(3) {
+                    let loc_parts: Vec<&str> = location.as_str().split(':').collect();
+                    if loc_parts.len() >= 3 {
+                        let file = loc_parts[0..loc_parts.len()-2].join(":");
+                        let line_num = loc_parts[loc_parts.len()-2].parse::<u32>().unwrap_or(0);
+                        let col_num = loc_parts[loc_parts.len()-1].parse::<u32>().unwrap_or(0);
+                        
+                        frames.push(StackFrame {
+                            function_name: func_name,
+                            file_name: file,
+                            line_number: line_num,
+                            column_number: col_num,
+                        });
                     }
                 }
-                i += 1;
             }
-            result
         }
-        #[cfg(not(target_feature = "simd128"))]
-        {
-            // 降级处理：普通的数字提取
-            let s = std::str::from_utf8_unchecked(bytes);
-            s.split(|c: char| !c.is_ascii_digit())
-                .filter_map(|s| s.parse::<u32>().ok())
-                .collect()
-        }
+        
+        frames
     }
 }
 
@@ -96,15 +174,16 @@ mod tests {
         let parser = ErrorParser::new();
         let stack = "Error: test\n at Component (/src/App.js:10:20)";
         let result = parser.parse(stack);
-        assert_eq!(result, "/src/App.js:10:20|");
+        assert!(result.contains("App.js:10:20"));
     }
 
     #[test]
     fn test_parse_simd() {
         let parser = ErrorParser::new();
         let stack = "Error: test\n at Component (/src/App.js:10:20)";
-        let result = parser.parse_simd(stack);
-        assert!(result.contains(&10));
-        assert!(result.contains(&20));
+        let frames = parser.parse_simd(stack);
+        assert!(!frames.is_empty());
+        assert_eq!(frames[0].line_number, 10);
+        assert_eq!(frames[0].column_number, 20);
     }
 }

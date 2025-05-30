@@ -87,11 +87,13 @@ export class ErrorParser {
 
     return {
       message,
+      name,
       stack,
       timestamp: Date.now(),
       source: 'local',
       type: 'unknown',
       parsedStack: frames,
+      frames: frames,
     };
   }
 
@@ -107,11 +109,13 @@ export class ErrorParser {
 
     return {
       message,
+      name,
       stack,
       timestamp: Date.now(),
       source: 'deepseek',
       type: 'unknown',
       parsedStack: result.parsedStack,
+      frames: result.parsedStack,
     };
   }
 

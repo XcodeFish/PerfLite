@@ -12,6 +12,15 @@ export interface IErrorInfo {
   colno?: number;
   url?: string;
   metadata?: Record<string, unknown>;
+  name: string;
+  frames: IStackFrame[];
+  relatedPerformance?: Record<string, any>;
+  user?: Record<string, any>;
+  browser?: {
+    name: string;
+    version: string;
+    os: string;
+  };
 }
 
 /**
@@ -82,6 +91,7 @@ export interface IErrorParser {
   correlateWithPerformance(error: IParsedError, metrics: IPerformanceMetricRef[]): IParsedError;
   getSourceMapInfo(fileName: string, lineNumber: number, columnNumber: number): Promise<unknown>;
   sanitizeErrorData(error: IParsedError): IParsedError;
+  parseStack(stack: string): Promise<IStackFrame[]>;
 }
 
 /**

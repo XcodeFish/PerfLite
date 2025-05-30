@@ -66,12 +66,14 @@ export class DeepSeekClient {
     let parsedStack: IStackFrame[] = [];
     let message = '';
     let type = 'unknown';
+    let name = 'Error';
 
     if (response.analysis) {
       // 从API的分析中提取信息
       parsedStack = response.frames || [];
       message = response.message || '';
       type = response.errorType || 'unknown';
+      name = response.name || 'Error';
     } else {
       // 降级方案：基本解析
       const lines = originalStack.split('\n');
@@ -83,10 +85,12 @@ export class DeepSeekClient {
 
     return {
       message,
+      name,
       stack: originalStack,
       timestamp: Date.now(),
       type: type as any,
       parsedStack,
+      frames: parsedStack,
       rootCause: response.rootCause || '未知根本原因',
       suggestions: response.suggestions || [],
       source: 'deepseek',
@@ -128,12 +132,15 @@ export class DeepSeekClient {
    * 创建基本错误对象（降级方案）
    */
   private createBasicError(stack: string, errorMsg: string): IParsedError {
+    const parsedStack = this.parseStackFrames(stack);
     return {
       message: stack.split('\n')[0] || errorMsg,
+      name: 'Error',
       stack,
       timestamp: Date.now(),
       type: 'unknown',
-      parsedStack: this.parseStackFrames(stack),
+      parsedStack,
+      frames: parsedStack,
       source: 'deepseek-fallback',
     };
   }

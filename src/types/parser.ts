@@ -4,7 +4,15 @@ import { IParsedError } from './error';
  * WASM解析器接口
  */
 export interface IWasmParser {
-  parseStack(stack: string): IParsedError;
+  /**
+   * 同步解析错误栈
+   */
+  parseStack(stack: string): import('./error').IStackFrame[];
+
+  /**
+   * 异步解析错误栈
+   */
+  parseStackAsync(stack: string): Promise<import('./error').IStackFrame[]>;
   parseStackSimd(stack: string): IParsedError;
   isLoaded(): boolean;
   loadWasm(): Promise<boolean>;
@@ -110,6 +118,25 @@ export interface IDeepSeekResponse {
  * DeepSeek客户端接口
  */
 export interface IDeepSeekClient {
+  /**
+   * 解析复杂错误栈
+   */
+  parseComplexStack(stack: string): Promise<import('./error').IStackFrame[]>;
+
+  /**
+   * 获取API调用计数
+   */
+  getCallCount(): number;
+
+  /**
+   * 重置API调用计数
+   */
+  resetCallCount(): void;
+
+  /**
+   * 设置API密钥
+   */
+  setApiKey(key: string): void;
   parseError(request: IDeepSeekRequest): Promise<IDeepSeekResponse>;
   isAvailable(): Promise<boolean>;
   getRemainingQuota(): Promise<number>;

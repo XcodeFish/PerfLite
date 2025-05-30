@@ -3,8 +3,11 @@
 
 use wasm_bindgen::prelude::*;
 mod parser;
+mod simd;
+mod utils;
 
-pub use parser::ErrorParser;
+pub use parser::{ErrorParser, StackFrame};
+pub use simd::SimdParser;
 
 // 提供一个全局初始化函数
 #[wasm_bindgen]
@@ -13,10 +16,25 @@ pub fn init_parser() -> ErrorParser {
     ErrorParser::new()
 }
 
+// 提供一个SIMD优化的解析器初始化函数
+#[wasm_bindgen]
+pub fn init_simd_parser() -> SimdParser {
+    console_error_panic_hook::set_once();
+    SimdParser::new()
+}
+
+// 直接解析栈信息
 #[wasm_bindgen]
 pub fn parse(stack: &str) -> String {
-    // 简单实现，将在后续开发中完善
-    format!("Parsed: {}", stack)
+    let parser = ErrorParser::new();
+    parser.parse(stack)
+}
+
+// SIMD优化版本解析数字
+#[wasm_bindgen]
+pub fn parse_numbers_simd(stack: &str) -> Vec<u32> {
+    let parser = SimdParser::new();
+    parser.parse_numbers(stack)
 }
 
 #[cfg(test)]

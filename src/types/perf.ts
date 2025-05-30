@@ -1,16 +1,38 @@
 import { IParsedError } from './error';
 
 /**
- * 性能指标类型
+ * 性能指标接口
  */
 export interface IPerformanceMetric {
+  /**
+   * 指标名称
+   */
   name: string;
+
+  /**
+   * 指标值
+   */
   value: number;
+
+  /**
+   * 指标单位
+   */
+  unit: string;
+
+  /**
+   * 记录时间戳
+   */
   timestamp: number;
-  unit: 'ms' | 'bytes' | 'count' | 'percent';
+
+  /**
+   * 指标来源
+   */
   source?: string;
-  category?: 'navigation' | 'resource' | 'paint' | 'memory' | 'custom';
-  labels?: Record<string, string>;
+
+  /**
+   * 元数据
+   */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -140,17 +162,28 @@ export interface IPerformanceReport {
  * 性能分析器接口
  */
 export interface IPerformanceAnalyzer {
-  captureMetric(metric: IPerformanceMetric): void;
+  /**
+   * 记录性能指标
+   */
+  recordMetric(name: string, value: number, unit?: string): void;
+
+  /**
+   * 获取所有性能指标
+   */
   getMetrics(): IPerformanceMetric[];
-  getCoreWebVitals(): ICoreWebVitals;
-  correlateErrors(perfData: IPerformanceMetric[], errors: unknown[]): unknown[];
-  setConfig(config: Partial<IPerformanceAnalyzerConfig>): void;
-  getConfig(): IPerformanceAnalyzerConfig;
-  analyzePerformance(): IPerformanceAnalysisResult;
-  getTimeline(startTime: number, endTime: number): IPerformanceTimeline;
-  startAutomaticCapture(): void;
-  stopAutomaticCapture(): void;
-  getResourceMetrics(): INetworkMetric[];
-  getMemoryMetrics(): IMemoryMetric[];
+
+  /**
+   * 获取指定名称的性能指标
+   */
+  getMetricsByName(name: string): IPerformanceMetric[];
+
+  /**
+   * 清除性能指标
+   */
   clearMetrics(): void;
+
+  /**
+   * 将错误与性能指标关联
+   */
+  correlateErrorsWithMetrics(errorTimestamp: number, timeWindow?: number): IPerformanceMetric[];
 }

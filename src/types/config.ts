@@ -100,23 +100,76 @@ export interface IAPICounterConfig {
 }
 
 /**
- * PerfLite 主配置接口
+ * PerfLite配置接口
  */
 export interface IPerfLiteConfig {
+  /**
+   * 应用ID
+   */
   appId: string;
-  enable: boolean;
-  sampleRate: number;
-  reportURI?: string;
-  errorCapture: boolean;
-  performanceCapture: boolean;
-  environment?: 'production' | 'development' | 'staging' | 'test';
-  version?: string;
-  deepseek: IDeepSeekConfig;
-  cache: ICacheConfig;
-  visualization: IVisualizationConfig;
-  plugins?: Record<string, unknown>;
-  apiCounter?: IAPICounterConfig;
-  security?: ISecurityConfig;
-  reporting?: IReportingConfig;
-  sampling?: ISamplingConfig;
+
+  /**
+   * DeepSeek相关配置
+   */
+  deepseek: {
+    /**
+     * 是否启用DeepSeek
+     */
+    enable: boolean;
+
+    /**
+     * 失败时降级策略
+     */
+    fallback: 'local' | 'none';
+
+    /**
+     * 限流比例 (0.0-1.0)
+     */
+    rateLimit: number;
+  };
+
+  /**
+   * 缓存配置
+   */
+  cache: {
+    /**
+     * 最大磁盘缓存大小
+     */
+    maxDiskSize: string;
+
+    /**
+     * 预缓存框架路径
+     */
+    precache?: string[];
+  };
+
+  /**
+   * 可视化配置
+   */
+  visualization: {
+    /**
+     * 主题
+     */
+    theme: 'light' | 'dark';
+
+    /**
+     * 最大数据点
+     */
+    maxDataPoints: number;
+
+    /**
+     * 图表类型
+     */
+    chartType: string;
+  };
+
+  /**
+   * 调试模式
+   */
+  debug: boolean;
+
+  /**
+   * 自动捕获错误
+   */
+  autoCapture: boolean;
 }

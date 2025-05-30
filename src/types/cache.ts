@@ -16,21 +16,36 @@ export interface ICacheItem<T> {
 /**
  * 内存缓存接口
  */
-export interface IMemoryCache<T = unknown> {
-  get(key: string): T | null;
-  set(key: string, value: T, ttl?: number): boolean;
+export interface IMemoryCache<T> {
+  /**
+   * 获取缓存项
+   */
+  get(key: string): T | undefined;
+
+  /**
+   * 设置缓存项
+   */
+  set(key: string, value: T): void;
+
+  /**
+   * 检查缓存项是否存在
+   */
   has(key: string): boolean;
+
+  /**
+   * 删除缓存项
+   */
   delete(key: string): boolean;
+
+  /**
+   * 清空缓存
+   */
   clear(): void;
+
+  /**
+   * 获取缓存大小
+   */
   size(): number;
-  keys(): string[];
-  getStats(): IMemoryCacheStats;
-  prune(): number;
-  setMaxSize(size: number): void;
-  updateTTL(key: string, ttl: number): boolean;
-  setPriority(key: string, priority: number): boolean;
-  getOldestItem(): ICacheItem<T> | null;
-  getNewestItem(): ICacheItem<T> | null;
 }
 
 /**
@@ -85,28 +100,30 @@ export interface IStorageStats {
  * 缓存系统接口
  */
 export interface ICacheSystem {
-  get<T>(key: string): Promise<T | null>;
-  getSync<T>(key: string): T | null;
-  set<T>(
-    key: string,
-    value: T,
-    options?: {
-      memoryOnly?: boolean;
-      ttl?: number;
-      priority?: number;
-      compress?: boolean;
-      metadata?: Record<string, unknown>;
-    }
-  ): Promise<boolean>;
+  /**
+   * 获取缓存项
+   */
+  get<T>(key: string): Promise<T | undefined>;
+
+  /**
+   * 设置缓存项
+   */
+  set<T>(key: string, value: T): Promise<void>;
+
+  /**
+   * 检查缓存项是否存在
+   */
+  has(key: string): Promise<boolean>;
+
+  /**
+   * 删除缓存项
+   */
   delete(key: string): Promise<boolean>;
+
+  /**
+   * 清空缓存
+   */
   clear(): Promise<void>;
-  preCacheFrameworks(frameworks: string[]): Promise<void>;
-  getStats(): Promise<{ memory: IMemoryCacheStats; storage: IStorageStats }>;
-  exportCache(): Promise<string>;
-  importCache(data: string): Promise<boolean>;
-  setStrategy(strategy: 'lru' | 'fifo' | 'lfu'): void;
-  optimize(): Promise<void>;
-  subscribe(callback: (event: ICacheEvent) => void): () => void;
 }
 
 /**
@@ -118,4 +135,39 @@ export interface ICacheEvent {
   source: 'memory' | 'storage';
   timestamp: number;
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * 存储缓存接口
+ */
+export interface IStorageCache<T> {
+  /**
+   * 获取缓存项
+   */
+  get(key: string): Promise<T | undefined>;
+
+  /**
+   * 设置缓存项
+   */
+  set(key: string, value: T): Promise<void>;
+
+  /**
+   * 检查缓存项是否存在
+   */
+  has(key: string): Promise<boolean>;
+
+  /**
+   * 删除缓存项
+   */
+  delete(key: string): Promise<boolean>;
+
+  /**
+   * 清空缓存
+   */
+  clear(prefix?: string): Promise<void>;
+
+  /**
+   * 清理过期缓存
+   */
+  cleanup(): Promise<void>;
 }
