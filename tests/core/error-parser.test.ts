@@ -1,4 +1,4 @@
-import { ErrorParser } from '../src/core/ErrorParser';
+import { ErrorParser } from '../../src/core/ErrorParser';
 
 describe('ErrorParser', () => {
   let errorParser: ErrorParser;
@@ -11,7 +11,7 @@ describe('ErrorParser', () => {
     const stack = `Error: Test error
         at functionName (file.js:10:5)
         at anotherFunction (file.js:15:10)`;
-    
+
     const result = await errorParser.parse(stack);
     expect(result).toBeDefined();
     expect(result).toMatch(/functionName/);
@@ -24,7 +24,7 @@ describe('ErrorParser', () => {
         at functionC (fileC.js:3:3)
         at functionD (fileD.js:4:4)
         at functionE (fileE.js:5:5)`;
-    
+
     const result = await errorParser.parse(complexStack);
     expect(result).toBeDefined();
     expect(result).toHaveProperty('apiResponse');
@@ -33,7 +33,7 @@ describe('ErrorParser', () => {
   test('should return cached result for previously parsed stack', async () => {
     const stack = `Error: Cached error
         at functionX (fileX.js:20:5)`;
-    
+
     await errorParser.parse(stack);
     const cachedResult = await errorParser.parse(stack);
     expect(cachedResult).toBeDefined();
