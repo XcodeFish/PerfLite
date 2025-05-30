@@ -439,3 +439,11 @@ class DefaultPlugin extends BasePlugin {
 const pluginManager = new PluginManager();
 
 export { pluginManager, PluginManager, DefaultPlugin };
+export * from './interface';
+export * from './built-in/memory-monitor';
+export * from './built-in/react-profiler';
+export * from './built-in/source-map';
+export * from './built-in/vue-profiler';
+
+// 对外暴露的默认插件管理器实例
+export default new PluginManager();
