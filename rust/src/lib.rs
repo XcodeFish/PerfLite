@@ -37,6 +37,20 @@ pub fn parse_numbers_simd(stack: &str) -> Vec<u32> {
     parser.parse_numbers(stack)
 }
 
+// SIMD优化完整栈解析
+#[wasm_bindgen]
+pub fn parse_stack_simd(stack: &str) -> String {
+    let parser = SimdParser::new();
+    parser.parse_stack_simd(stack)
+}
+
+// SIMD优化的行列号解析
+#[wasm_bindgen]
+pub fn parse_line_column_simd(stack: &str) -> Vec<u32> {
+    let parser = SimdParser::new();
+    parser.parse_line_column(stack)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,5 +93,16 @@ mod tests {
         let test_stack = "Invalid stack trace format";
         let result = parser.parse(test_stack);
         assert_eq!(result, "");
+    }
+    
+    #[test]
+    fn test_simd_stack_parse() {
+        let parser = SimdParser::new();
+        let test_stack = r#"Error: Test error
+            at Component (/src/App.js:10:15)
+            at Router (/node_modules/react-router/index.js:20:10)"#;
+            
+        let result = parser.parse_stack_simd(test_stack);
+        assert!(result.contains("App.js:10"));
     }
 }

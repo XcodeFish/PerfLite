@@ -2,6 +2,8 @@
  * 工具函数入口
  */
 
+import * as compressionTools from './compress';
+
 /**
  * 计算字符串的MD5哈希值
  * 这是一个简化版的MD5实现，生产环境可以使用成熟的库
@@ -37,6 +39,7 @@ export function sanitize(data: string): string {
 /**
  * 压缩工具
  * 简单的字符串压缩
+ * @deprecated 使用 compress.ts 中的高级压缩工具
  */
 export function compress(data: string): string {
   if (!data) return data;
@@ -47,6 +50,52 @@ export function compress(data: string): string {
     .replace(/([{,:])\s+/g, '$1')
     .replace(/\s+([},:])/g, '$1');
 }
+
+/**
+ * 高级数据压缩与传输优化工具
+ * 从compress.ts导出
+ */
+export const compression = {
+  /**
+   * 使用deflate算法压缩数据
+   */
+  compressData: compressionTools.compressData,
+
+  /**
+   * 解压缩数据
+   */
+  decompressData: compressionTools.decompressData,
+
+  /**
+   * 分片压缩大型数据
+   */
+  compressLargeData: compressionTools.compressLargeData,
+
+  /**
+   * 解压缩分片数据
+   */
+  decompressLargeData: compressionTools.decompressLargeData,
+
+  /**
+   * 传输前优化数据大小
+   */
+  optimizeForTransfer: compressionTools.optimizeForTransfer,
+
+  /**
+   * 从传输优化的数据中还原原始数据
+   */
+  restoreFromTransfer: compressionTools.restoreFromTransfer,
+
+  /**
+   * 智能压缩
+   */
+  smartCompress: compressionTools.smartCompress,
+
+  /**
+   * 智能解压缩
+   */
+  smartDecompress: compressionTools.smartDecompress,
+};
 
 /**
  * 浏览器兼容工具

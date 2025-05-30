@@ -22,6 +22,12 @@ impl SimdParser {
         unsafe { self.simd_extract_line_column(bytes) }
     }
 
+    /// 使用SIMD指令加速完整错误栈解析
+    #[wasm_bindgen]
+    pub fn parse_stack_simd(&self, stack: &str) -> String {
+        unsafe { self.simd_parse_stack(stack.as_bytes()) }
+    }
+
     /// SIMD优化的数字提取
     unsafe fn simd_extract_numbers(&self, bytes: &[u8]) -> Vec<u32> {
         #[cfg(target_feature = "simd128")]
@@ -136,5 +142,158 @@ impl SimdParser {
             }
             result
         }
+    }
+    
+    /// SIMD优化的完整错误栈解析
+    unsafe fn simd_parse_stack(&self, bytes: &[u8]) -> String {
+        let s = std::str::from_utf8_unchecked(bytes);
+        let mut result = String::new();
+        
+        #[cfg(target_feature = "simd128")]
+        {
+            use std::arch::wasm32::*;
+            let len = bytes.len();
+            let mut i = 0;
+            
+            // 使用SIMD检测 'at ' 关键词
+            let at_byte = b'a';
+            let t_byte = b't';
+            let space_byte = b' ';
+            
+            // 字符比较用的掩码
+            let at_mask = i8x16_splat(at_byte as i8);
+            let t_mask = i8x16_splat(t_byte as i8);
+            let space_mask = i8x16_splat(space_byte as i8);
+            
+            while i + 16 <= len {
+                let chunk = v128_load(bytes.as_ptr().add(i) as *const v128);
+                
+                // 查找 'a' 字符
+                let is_a = i8x16_eq(chunk, at_mask);
+                let a_mask = i8x16_bitmask(is_a);
+                
+                if a_mask != 0 {
+                    // 找到可能的 'at ' 序列
+                    let mut j = i;
+                    
+                    while j < i + 16 && j + 3 < len {
+                        if bytes[j] == at_byte && bytes[j+1] == t_byte && bytes[j+2] == space_byte {
+                            // 找到 'at ' 标记
+                            let mut line_start = j + 3;
+                            
+                            // 扫描找到文件路径和行列号
+                            while line_start < len && bytes[line_start] != b'(' && bytes[line_start] != b'/' {
+                                line_start += 1;
+                            }
+                            
+                            if line_start < len {
+                                // 查找行列号
+                                let mut line_end = line_start;
+                                while line_end < len && bytes[line_end] != b'\n' && bytes[line_end] != b'\r' {
+                                    line_end += 1;
+                                }
+                                
+                                // 提取这行信息
+                                if line_end > line_start {
+                                    let line_str = std::str::from_utf8_unchecked(&bytes[line_start..line_end]);
+                                    // 查找冒号分隔的行列号
+                                    if let Some(file_path) = line_str.trim_start_matches('(').trim_end_matches(')').split(':').next() {
+                                        let path_parts: Vec<&str> = file_path.split('/').collect();
+                                        if let Some(file_name) = path_parts.last() {
+                                            // 找到文件名
+                                            result.push_str(file_name);
+                                            result.push(':');
+                                            
+                                            // 尝试提取行号
+                                            if line_str.contains(':') {
+                                                let parts: Vec<&str> = line_str.split(':').collect();
+                                                if parts.len() > 1 {
+                                                    result.push_str(parts[1]);
+                                                    result.push('|');
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            j = line_start;
+                        }
+                        j += 1;
+                    }
+                }
+                
+                i += 16;
+            }
+            
+            // 处理剩余部分
+            while i < len {
+                if i + 3 < len && bytes[i] == at_byte && bytes[i+1] == t_byte && bytes[i+2] == space_byte {
+                    // 同上，处理单个 'at ' 标记
+                    let mut line_start = i + 3;
+                    
+                    while line_start < len && bytes[line_start] != b'(' && bytes[line_start] != b'/' {
+                        line_start += 1;
+                    }
+                    
+                    if line_start < len {
+                        let mut line_end = line_start;
+                        while line_end < len && bytes[line_end] != b'\n' && bytes[line_end] != b'\r' {
+                            line_end += 1;
+                        }
+                        
+                        if line_end > line_start {
+                            let line_str = std::str::from_utf8_unchecked(&bytes[line_start..line_end]);
+                            if let Some(file_path) = line_str.trim_start_matches('(').trim_end_matches(')').split(':').next() {
+                                let path_parts: Vec<&str> = file_path.split('/').collect();
+                                if let Some(file_name) = path_parts.last() {
+                                    result.push_str(file_name);
+                                    result.push(':');
+                                    
+                                    if line_str.contains(':') {
+                                        let parts: Vec<&str> = line_str.split(':').collect();
+                                        if parts.len() > 1 {
+                                            result.push_str(parts[1]);
+                                            result.push('|');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    i = line_start;
+                }
+                i += 1;
+            }
+        }
+        
+        #[cfg(not(target_feature = "simd128"))]
+        {
+            // 降级处理：普通的栈解析
+            for line in s.lines() {
+                if line.contains(" at ") {
+                    if let Some(file_info) = line.split(" at ").nth(1) {
+                        if let Some(file_path) = file_info.trim_start_matches('(').trim_end_matches(')').split(':').next() {
+                            let path_parts: Vec<&str> = file_path.split('/').collect();
+                            if let Some(file_name) = path_parts.last() {
+                                result.push_str(file_name);
+                                result.push(':');
+                                
+                                if file_info.contains(':') {
+                                    let parts: Vec<&str> = file_info.split(':').collect();
+                                    if parts.len() > 1 {
+                                        result.push_str(parts[1]);
+                                        result.push('|');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        result
     }
 }
