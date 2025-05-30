@@ -2,7 +2,6 @@
 
 // 以上注释用于禁用整个文件中的any警告，因为这是压力测试，具体类型较为复杂
 
-// tests/performance/stress.test.ts
 import { ErrorParser } from '../../src/core/ErrorParser';
 import { PerformanceAnalyzer } from '../../src/core/PerformanceAnalyzer';
 import { IParsedError } from '../../src/types/error';

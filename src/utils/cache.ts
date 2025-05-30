@@ -1,5 +1,3 @@
-// src/utils/cache.ts
-
 import LRUCache from 'lru-cache';
 
 // 创建LRU缓存实例，容量为1000条，最大存活时间为1小时

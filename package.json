@@ -5,6 +5,8 @@
   "type": "module",
   "main": "dist/perflite.min.js",
   "types": "dist/types/index.d.ts",
+  "author": "codefish",
+  "email": "codefish798@gmail.com",
   "files": [
     "dist"
   ],
@@ -42,7 +44,6 @@
     "error-tracking",
     "wasm"
   ],
-  "author": "Your Name",
   "license": "MIT",
   "dependencies": {
     "echarts": "^5.4.3",

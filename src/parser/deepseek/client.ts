@@ -1,9 +1,28 @@
 import { IStackFrame, IParsedError } from '@/types';
 
+// 全局配置
+let globalConfig: {
+  apiKey?: string;
+  baseUrl?: string;
+  quotaMode?: 'standard' | 'economy';
+} = {};
+
 export class DeepSeekClient {
   private apiKey: string;
   private baseUrl: string;
   private quotaMode: 'standard' | 'economy';
+
+  /**
+   * 设置全局DeepSeek配置
+   * @param config 全局配置对象
+   */
+  static configure(config: {
+    apiKey?: string;
+    baseUrl?: string;
+    quotaMode?: 'standard' | 'economy';
+  }): void {
+    globalConfig = { ...config };
+  }
 
   constructor(
     options: {
@@ -12,15 +31,26 @@ export class DeepSeekClient {
       quotaMode?: 'standard' | 'economy';
     } = {}
   ) {
-    this.apiKey = options.apiKey || '';
-    this.baseUrl = options.baseUrl || 'https://api.deepseek.com';
-    this.quotaMode = options.quotaMode || 'standard';
+    // 优先使用实例配置，其次使用全局配置，最后使用默认值或环境变量
+    this.apiKey = options.apiKey || globalConfig.apiKey || process.env.DEEPSEEK_API_KEY || '';
+    this.baseUrl =
+      options.baseUrl ||
+      globalConfig.baseUrl ||
+      process.env.DEEPSEEK_API_URL ||
+      'https://api.deepseek.com';
+    this.quotaMode = options.quotaMode || globalConfig.quotaMode || 'standard';
   }
 
   /**
    * 解析错误栈
    */
   public async parseError(stack: string): Promise<IParsedError> {
+    // 验证API密钥是否存在
+    if (!this.apiKey) {
+      console.warn('DeepSeek API密钥未配置，将使用基本解析');
+      return this.createBasicError(stack, '未配置API密钥');
+    }
+
     try {
       const response = await this.callAPI(stack);
       return this.formatResponse(response, stack);
@@ -34,25 +64,41 @@ export class DeepSeekClient {
    * 调用DeepSeek API
    */
   private async callAPI(stack: string): Promise<any> {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': this.apiKey,
-        'Quota-Mode': this.quotaMode,
-      },
-      body: JSON.stringify({
-        prompt:
-          'Parse this JavaScript error stack trace and provide detailed analysis: \n\n' + stack,
-        max_tokens: 500,
-      }),
-    });
+    // 超时控制
+    const timeout = 10000; // 10秒超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    if (!response.ok) {
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': this.apiKey,
+          'Quota-Mode': this.quotaMode,
+        },
+        body: JSON.stringify({
+          prompt:
+            'Parse this JavaScript error stack trace and provide detailed analysis: \n\n' + stack,
+          max_tokens: 500,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API调用失败: ${response.status} ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('API调用超时');
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   /**
@@ -165,5 +211,35 @@ export class DeepSeekClient {
       frames: parsedStack,
       source: 'deepseek-fallback',
     };
+  }
+
+  /**
+   * 检查DeepSeek服务是否可用
+   * @returns 如果服务可用返回true，否则返回false
+   */
+  public async checkServiceAvailability(): Promise<boolean> {
+    if (!this.apiKey) {
+      console.warn('DeepSeek API密钥未配置，无法检查服务可用性');
+      return false;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': this.apiKey,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error: any) {
+      console.error('DeepSeek服务检查失败:', error.message);
+      return false;
+    }
   }
 }

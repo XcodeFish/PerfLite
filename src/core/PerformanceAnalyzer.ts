@@ -1,4 +1,3 @@
-// src/core/PerformanceAnalyzer.ts
 import {
   IPerformanceMetric,
   IResourceTiming,

@@ -1,4 +1,3 @@
-// tests/parser/wasm.test.ts
 /**
  * WASM解析器单元测试
  * 测试WebAssembly解析器的功能和性能

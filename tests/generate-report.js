@@ -2,7 +2,6 @@
 /* eslint-disable no-undef */
 
 /* eslint-disable max-len */
-// tests/generate-report.js
 // 该文件是Node.js脚本，用于生成测试报告，不遵循项目的TypeScript规范
 
 const fs = require('fs');
