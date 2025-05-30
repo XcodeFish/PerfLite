@@ -24,6 +24,52 @@ export interface IChartData {
     yLabels?: string[]; // Y轴标签
   };
 
+  // 散点图数据结构
+  scatter?: {
+    points: Array<{
+      x: number;
+      y: number;
+      size?: number;
+      color?: string;
+      label?: string;
+    }>;
+    xAxis?: {
+      min?: number;
+      max?: number;
+      label?: string;
+    };
+    yAxis?: {
+      min?: number;
+      max?: number;
+      label?: string;
+    };
+  };
+
+  // 时间线数据结构
+  timeline?: {
+    events: Array<{
+      name: string;
+      startTime: number;
+      endTime?: number;
+      color?: string;
+      type?: string;
+      details?: Record<string, unknown>;
+    }>;
+    timeRange?: {
+      start: number;
+      end: number;
+    };
+  };
+
+  // 数据集集合
+  datasets?: Array<{
+    label?: string;
+    data: any[];
+    color?: string;
+    type?: string;
+    hidden?: boolean;
+  }>;
+
   // 桑基图数据结构
   sankey?: {
     nodes: {

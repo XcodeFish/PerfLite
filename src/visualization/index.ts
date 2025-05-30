@@ -6,11 +6,273 @@ import {
   IDashboardConfig,
   IChartOptions,
   IChartEvent,
+  IWebGLRenderer,
+  ICanvasRenderer,
 } from '../types/visualization';
 import { Dashboard } from './dashboard';
 import { ChartAdapter } from './chart-adapter';
 import { CanvasRenderer } from './renderers/canvas';
 import { WebGLRenderer } from './renderers/webgl';
+
+/**
+ * 渲染器类型
+ */
+export type RendererType = 'webgl' | 'canvas' | 'auto';
+
+/**
+ * 渲染引擎管理器 - 负责选择和切换WebGL/Canvas渲染器
+ */
+export class RenderEngine {
+  private container: HTMLElement | null = null;
+  private webglRenderer: IWebGLRenderer;
+  private canvasRenderer: ICanvasRenderer;
+  private activeRenderer: IRenderer | null = null;
+  private rendererType: RendererType = 'auto';
+  private fallbackToCanvas: boolean = true;
+  private currentData: IChartData = {};
+  private currentOptions: IChartOptions | null = null;
+  private isWebGLSupported: boolean = false;
+
+  /**
+   * 创建渲染引擎
+   * @param container 容器元素
+   * @param rendererType 渲染器类型
+   */
+  constructor(container?: HTMLElement, rendererType: RendererType = 'auto') {
+    this.webglRenderer = new WebGLRenderer();
+    this.canvasRenderer = new CanvasRenderer();
+    this.rendererType = rendererType;
+
+    if (container) {
+      this.init(container);
+    }
+  }
+
+  /**
+   * 初始化渲染引擎
+   * @param container 容器元素
+   */
+  public init(container: HTMLElement): void {
+    this.container = container;
+
+    // 检测WebGL支持
+    this.isWebGLSupported = this.checkWebGLSupport();
+
+    // 选择渲染器
+    this.selectRenderer();
+
+    // 初始化选中的渲染器
+    if (this.activeRenderer && this.container) {
+      this.activeRenderer.init(this.container);
+    }
+  }
+
+  /**
+   * 渲染图表
+   * @param data 图表数据
+   * @param options 图表选项
+   */
+  public render(data: IChartData, options: IChartOptions): void {
+    this.currentData = data;
+    this.currentOptions = options;
+
+    if (this.activeRenderer) {
+      this.activeRenderer.render(data, options);
+    } else if (this.container) {
+      // 如果没有活跃的渲染器，重新初始化
+      this.init(this.container);
+      this.render(data, options);
+    }
+  }
+
+  /**
+   * 更新图表数据
+   * @param data 新的图表数据
+   */
+  public update(data: IChartData): void {
+    this.currentData = data;
+
+    if (this.activeRenderer && this.currentOptions) {
+      this.activeRenderer.update(data);
+    }
+  }
+
+  /**
+   * 切换渲染器类型
+   * @param type 渲染器类型
+   */
+  public switchRenderer(type: RendererType): void {
+    if (this.rendererType === type) {
+      return;
+    }
+
+    // 销毁当前渲染器
+    if (this.activeRenderer) {
+      this.activeRenderer.destroy();
+    }
+
+    this.rendererType = type;
+
+    // 选择新的渲染器
+    this.selectRenderer();
+
+    // 初始化新渲染器并重新渲染
+    if (this.activeRenderer && this.container) {
+      this.activeRenderer.init(this.container);
+
+      if (this.currentOptions) {
+        this.render(this.currentData, this.currentOptions);
+      }
+    }
+  }
+
+  /**
+   * 获取当前使用的渲染器类型
+   */
+  public getRendererType(): 'webgl' | 'canvas' {
+    return this.activeRenderer instanceof WebGLRenderer ? 'webgl' : 'canvas';
+  }
+
+  /**
+   * 获取当前渲染器
+   */
+  public getRenderer(): IRenderer | null {
+    return this.activeRenderer;
+  }
+
+  /**
+   * 获取WebGL渲染器（如果当前使用）
+   */
+  public getWebGLRenderer(): IWebGLRenderer | null {
+    return this.activeRenderer instanceof WebGLRenderer ? this.activeRenderer : null;
+  }
+
+  /**
+   * 获取Canvas渲染器（如果当前使用）
+   */
+  public getCanvasRenderer(): ICanvasRenderer | null {
+    return this.activeRenderer instanceof CanvasRenderer ? this.activeRenderer : null;
+  }
+
+  /**
+   * 调整渲染器大小
+   */
+  public resize(dimensions: { width: number; height: number }): void {
+    if (this.activeRenderer) {
+      this.activeRenderer.resize(dimensions);
+    }
+  }
+
+  /**
+   * 销毁渲染引擎
+   */
+  public destroy(): void {
+    if (this.activeRenderer) {
+      this.activeRenderer.destroy();
+      this.activeRenderer = null;
+    }
+
+    this.container = null;
+    this.currentData = {};
+    this.currentOptions = null;
+  }
+
+  /**
+   * 设置是否在WebGL不可用时回退到Canvas
+   */
+  public setFallbackToCanvas(fallback: boolean): void {
+    this.fallbackToCanvas = fallback;
+
+    // 如果设置为不回退但当前是回退状态，需要尝试切换回WebGL
+    if (
+      !fallback &&
+      this.rendererType === 'webgl' &&
+      this.activeRenderer instanceof CanvasRenderer
+    ) {
+      // 重新选择渲染器
+      this.selectRenderer();
+
+      // 重新初始化
+      if (this.activeRenderer && this.container) {
+        this.activeRenderer.init(this.container);
+
+        if (this.currentOptions) {
+          this.render(this.currentData, this.currentOptions);
+        }
+      }
+    }
+  }
+
+  /**
+   * 获取性能信息
+   */
+  public getPerformance(): { fps: number; renderTime: number; memoryUsage?: number } {
+    if (this.activeRenderer) {
+      return this.activeRenderer.getPerformance();
+    }
+
+    return { fps: 0, renderTime: 0 };
+  }
+
+  /**
+   * 启用或禁用动画
+   */
+  public enableAnimation(enable: boolean): void {
+    if (this.activeRenderer) {
+      this.activeRenderer.enableAnimation(enable);
+    }
+  }
+
+  /**
+   * 选择适当的渲染器
+   */
+  private selectRenderer(): void {
+    switch (this.rendererType) {
+      case 'webgl':
+        // 如果指定WebGL但不支持，根据fallback设置决定是否回退
+        if (!this.isWebGLSupported) {
+          if (this.fallbackToCanvas) {
+            console.warn('WebGL不可用，回退到Canvas渲染');
+            this.activeRenderer = this.canvasRenderer;
+          } else {
+            console.error('WebGL不可用，且未启用回退选项');
+            this.activeRenderer = null;
+          }
+        } else {
+          this.activeRenderer = this.webglRenderer;
+        }
+        break;
+
+      case 'canvas':
+        this.activeRenderer = this.canvasRenderer;
+        break;
+
+      case 'auto':
+      default:
+        // 自动选择最佳渲染器
+        if (this.isWebGLSupported) {
+          this.activeRenderer = this.webglRenderer;
+        } else {
+          this.activeRenderer = this.canvasRenderer;
+        }
+        break;
+    }
+  }
+
+  /**
+   * 检查WebGL支持
+   */
+  private checkWebGLSupport(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      return !!gl;
+    } catch (error) {
+      console.warn('检测WebGL支持时出错:', error);
+      return false;
+    }
+  }
+}
 
 /**
  * 可视化引擎主入口
@@ -331,3 +593,6 @@ export { Dashboard } from './dashboard';
 export { ChartAdapter } from './chart-adapter';
 export { CanvasRenderer } from './renderers/canvas';
 export { WebGLRenderer } from './renderers/webgl';
+
+// 创建并导出默认实例
+export const renderEngine = new RenderEngine();

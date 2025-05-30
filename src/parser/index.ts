@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 /**
  * 解析器模块入口
  */

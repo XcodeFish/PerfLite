@@ -1,13 +1,24 @@
 /* eslint-disable indent */
 import { IWebGLRenderer, IChartData, IChartOptions } from '../../types/visualization';
 
+// SIMD支持检测
+const hasSIMD = () => {
+  try {
+    // @ts-expect-error SIMD API不在标准TypeScript类型中
+    return typeof Float32x4 !== 'undefined' || typeof window.SIMD !== 'undefined';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * WebGL渲染器实现
  */
 export class WebGLRenderer implements IWebGLRenderer {
   private container: HTMLElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
-  private gl: WebGLRenderingContext | null = null;
+  private gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
+  private isWebGL2: boolean = false;
   private data: IChartData = {};
   private options: IChartOptions | null = null;
   private animationFrameId: number | null = null;
@@ -18,6 +29,11 @@ export class WebGLRenderer implements IWebGLRenderer {
   private pixelRatio = window.devicePixelRatio || 1;
   private clearColor = { r: 0, g: 0, b: 0, a: 0 };
   private antialiasing = true;
+  private enableSIMD: boolean = false;
+
+  // 渲染状态
+  private isRendering: boolean = false;
+  private needsRerender: boolean = false;
 
   // 着色器程序
   private shaderProgram: WebGLProgram | null = null;
@@ -25,6 +41,13 @@ export class WebGLRenderer implements IWebGLRenderer {
   // 缓冲区
   private vertexBuffer: WebGLBuffer | null = null;
   private colorBuffer: WebGLBuffer | null = null;
+  private indexBuffer: WebGLBuffer | null = null;
+
+  // 顶点数组对象 (WebGL2)
+  private vao: WebGLVertexArrayObject | null = null;
+
+  // WebGL2特有扩展
+  private webgl2Extensions: Record<string, any> = {};
 
   /**
    * 初始化WebGL渲染器
@@ -42,27 +65,57 @@ export class WebGLRenderer implements IWebGLRenderer {
 
     container.appendChild(this.canvas);
 
-    // 获取WebGL上下文
+    // 检测SIMD支持
+    this.enableSIMD = hasSIMD();
+    console.log(`SIMD支持: ${this.enableSIMD ? '可用' : '不可用'}`);
+
+    // 获取WebGL上下文 (尝试WebGL2)
     const contextOptions = {
       alpha: true,
       antialias: this.antialiasing,
       preserveDrawingBuffer: true,
+      powerPreference: 'high-performance' as WebGLPowerPreference,
     };
 
-    this.gl =
-      (this.canvas.getContext('webgl', contextOptions) as WebGLRenderingContext) ||
-      (this.canvas.getContext('experimental-webgl', contextOptions) as WebGLRenderingContext);
+    // 尝试获取WebGL2上下文
+    this.gl = this.canvas.getContext('webgl2', contextOptions) as WebGL2RenderingContext;
+    this.isWebGL2 = !!this.gl;
+
+    // 如果WebGL2不可用，回退到WebGL1
+    if (!this.gl) {
+      this.gl =
+        (this.canvas.getContext('webgl', contextOptions) as WebGLRenderingContext) ||
+        (this.canvas.getContext('experimental-webgl', contextOptions) as WebGLRenderingContext);
+      this.isWebGL2 = false;
+    }
 
     if (!this.gl) {
-      console.error('WebGL不可用，回退到Canvas渲染');
+      console.error('WebGL不可用，需要回退到Canvas渲染');
       return;
+    }
+
+    console.log(`WebGL版本: ${this.isWebGL2 ? 'WebGL 2.0' : 'WebGL 1.0'}`);
+
+    // 加载WebGL2特有扩展
+    if (this.isWebGL2) {
+      this.loadWebGL2Extensions();
     }
 
     // 初始化着色器
     this.initShaders();
 
+    // 创建顶点数组对象 (WebGL2)
+    if (this.isWebGL2) {
+      this.vao = (this.gl as WebGL2RenderingContext).createVertexArray();
+    }
+
     // 设置清除颜色
     this.gl.clearColor(this.clearColor.r, this.clearColor.g, this.clearColor.b, this.clearColor.a);
+
+    // 启用深度测试和混合
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     // 监听容器大小变化
     const resizeObserver = new ResizeObserver(() => {
@@ -76,12 +129,49 @@ export class WebGLRenderer implements IWebGLRenderer {
   }
 
   /**
+   * 加载WebGL2特有扩展
+   */
+  private loadWebGL2Extensions(): void {
+    if (!this.isWebGL2 || !this.gl) return;
+
+    const gl2 = this.gl as WebGL2RenderingContext;
+
+    // 常用的WebGL2扩展
+    const extensions = [
+      'EXT_color_buffer_float',
+      'EXT_texture_filter_anisotropic',
+      'OES_texture_float_linear',
+    ];
+
+    for (const ext of extensions) {
+      try {
+        const extension = gl2.getExtension(ext);
+        if (extension) {
+          this.webgl2Extensions[ext] = extension;
+          console.log(`WebGL2扩展已加载: ${ext}`);
+        }
+      } catch (err) {
+        console.warn(`无法加载WebGL2扩展: ${ext}`, err);
+      }
+    }
+  }
+
+  /**
    * 渲染图表
    * @param data 图表数据
    * @param options 图表选项
    */
   public render(data: IChartData, options: IChartOptions): void {
     if (!this.gl || !this.canvas) return;
+
+    // 避免并发渲染
+    if (this.isRendering) {
+      this.needsRerender = true;
+      return;
+    }
+
+    this.isRendering = true;
+    const renderStartTime = performance.now();
 
     this.data = data;
     this.options = options;
@@ -111,7 +201,15 @@ export class WebGLRenderer implements IWebGLRenderer {
     }
 
     // 计算性能指标
+    this.lastRenderTime = performance.now() - renderStartTime;
     this.calculatePerformance();
+    this.isRendering = false;
+
+    // 如果在渲染期间收到了新的渲染请求，重新渲染
+    if (this.needsRerender && this.data && this.options) {
+      this.needsRerender = false;
+      requestAnimationFrame(() => this.render(this.data, this.options!));
+    }
   }
 
   /**
@@ -120,6 +218,12 @@ export class WebGLRenderer implements IWebGLRenderer {
    */
   public update(data: IChartData): void {
     if (!this.options) return;
+
+    // 使用SIMD处理数据 (如果可用)
+    if (this.enableSIMD) {
+      data = this.processSIMD(data);
+    }
+
     this.render(data, this.options);
   }
 
@@ -144,6 +248,75 @@ export class WebGLRenderer implements IWebGLRenderer {
   }
 
   /**
+   * 使用SIMD加速数据处理 (如果可用)
+   */
+  private processSIMD(data: IChartData): IChartData {
+    // 如果SIMD不可用或数据为空，直接返回原数据
+    if (!this.enableSIMD) {
+      return data;
+    }
+
+    try {
+      // 深拷贝数据以避免修改原数据
+      const processedData = JSON.parse(JSON.stringify(data));
+
+      // 处理数据集（如果存在）
+      if (processedData.datasets && Array.isArray(processedData.datasets)) {
+        processedData.datasets = processedData.datasets.map((dataset: any) => {
+          if (Array.isArray(dataset.data)) {
+            // 使用SIMD处理数值数组
+            const len = dataset.data.length;
+            if (len >= 4) {
+              // SIMD处理需要至少4个元素
+              // 创建视图以进行SIMD处理
+              // @ts-expect-error SIMD API不在标准TypeScript类型中
+              if (typeof Float32x4 !== 'undefined') {
+                const buffer = new Float32Array(dataset.data);
+                const result = new Float32Array(len);
+
+                // 每次处理4个元素
+                for (let i = 0; i <= len - 4; i += 4) {
+                  // @ts-expect-error SIMD API不在标准TypeScript类型中
+                  const simdData = new Float32x4(
+                    buffer[i],
+                    buffer[i + 1],
+                    buffer[i + 2],
+                    buffer[i + 3]
+                  );
+
+                  // 在这里执行SIMD操作，例如标准化或滤波
+                  // 这里只是简单地返回原始值
+                  Float32Array.from(simdData).forEach((v, j) => {
+                    result[i + j] = v;
+                  });
+                }
+
+                // 处理剩余元素
+                for (let i = Math.floor(len / 4) * 4; i < len; i++) {
+                  result[i] = buffer[i];
+                }
+
+                dataset.data = Array.from(result);
+              }
+            }
+          }
+          return dataset;
+        });
+      }
+
+      // 处理指标数据（如果存在）
+      if (processedData.metrics && Array.isArray(processedData.metrics)) {
+        // 这里可以添加对metrics数组的SIMD处理
+      }
+
+      return processedData;
+    } catch (error) {
+      console.warn('SIMD数据处理失败', error);
+      return data;
+    }
+  }
+
+  /**
    * 销毁渲染器
    */
   public destroy(): void {
@@ -164,6 +337,11 @@ export class WebGLRenderer implements IWebGLRenderer {
       if (this.shaderProgram) {
         this.gl.deleteProgram(this.shaderProgram);
       }
+
+      // 清理WebGL2特有资源
+      if (this.isWebGL2 && this.vao) {
+        (this.gl as WebGL2RenderingContext).deleteVertexArray(this.vao);
+      }
     }
 
     if (this.canvas && this.container) {
@@ -175,6 +353,7 @@ export class WebGLRenderer implements IWebGLRenderer {
     this.container = null;
     this.data = {};
     this.options = null;
+    this.webgl2Extensions = {};
   }
 
   /**
@@ -280,8 +459,22 @@ export class WebGLRenderer implements IWebGLRenderer {
   /**
    * 获取WebGL渲染上下文
    */
-  public getContext(): WebGLRenderingContext | null {
+  public getContext(): WebGLRenderingContext | WebGL2RenderingContext | null {
     return this.gl;
+  }
+
+  /**
+   * 检查WebGL2是否可用
+   */
+  public isWebGL2Available(): boolean {
+    return this.isWebGL2;
+  }
+
+  /**
+   * 获取所有加载的WebGL2扩展
+   */
+  public getWebGL2Extensions(): string[] {
+    return Object.keys(this.webgl2Extensions);
   }
 
   /**
@@ -290,34 +483,62 @@ export class WebGLRenderer implements IWebGLRenderer {
   private initShaders(): void {
     if (!this.gl) return;
 
-    // 顶点着色器
-    const vertexShaderSource = `
-      attribute vec2 aPosition;
-      attribute vec3 aColor;
-      uniform vec2 uResolution;
-      varying vec3 vColor;
-      
-      void main() {
-        // 将位置转换为归一化设备坐标
-        vec2 position = aPosition / uResolution * 2.0 - 1.0;
-        // Y轴翻转
-        position.y *= -1.0;
+    // 顶点着色器 - 支持WebGL2特性
+    const vertexShaderSource = this.isWebGL2
+      ? `#version 300 es
+        in vec2 aPosition;
+        in vec3 aColor;
+        uniform vec2 uResolution;
+        out vec3 vColor;
         
-        gl_Position = vec4(position, 0.0, 1.0);
-        gl_PointSize = 5.0;
-        vColor = aColor;
-      }
-    `;
+        void main() {
+          // 将位置转换为归一化设备坐标
+          vec2 position = aPosition / uResolution * 2.0 - 1.0;
+          // Y轴翻转
+          position.y *= -1.0;
+          
+          gl_Position = vec4(position, 0.0, 1.0);
+          gl_PointSize = 5.0;
+          vColor = aColor;
+        }
+      `
+      : `
+        attribute vec2 aPosition;
+        attribute vec3 aColor;
+        uniform vec2 uResolution;
+        varying vec3 vColor;
+        
+        void main() {
+          // 将位置转换为归一化设备坐标
+          vec2 position = aPosition / uResolution * 2.0 - 1.0;
+          // Y轴翻转
+          position.y *= -1.0;
+          
+          gl_Position = vec4(position, 0.0, 1.0);
+          gl_PointSize = 5.0;
+          vColor = aColor;
+        }
+      `;
 
-    // 片段着色器
-    const fragmentShaderSource = `
-      precision mediump float;
-      varying vec3 vColor;
-      
-      void main() {
-        gl_FragColor = vec4(vColor, 1.0);
-      }
-    `;
+    // 片段着色器 - 支持WebGL2特性
+    const fragmentShaderSource = this.isWebGL2
+      ? `#version 300 es
+        precision mediump float;
+        in vec3 vColor;
+        out vec4 fragColor;
+        
+        void main() {
+          fragColor = vec4(vColor, 1.0);
+        }
+      `
+      : `
+        precision mediump float;
+        varying vec3 vColor;
+        
+        void main() {
+          gl_FragColor = vec4(vColor, 1.0);
+        }
+      `;
 
     // 创建着色器程序
     const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexShaderSource);
@@ -403,13 +624,21 @@ export class WebGLRenderer implements IWebGLRenderer {
       colors.push(...lineColors);
     }
 
+    // 绑定VAO (WebGL2)
+    if (this.isWebGL2 && this.vao) {
+      (this.gl as WebGL2RenderingContext).bindVertexArray(this.vao);
+    }
+
     // 创建顶点缓冲区
     this.vertexBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.STATIC_DRAW);
 
     // 绑定顶点位置属性
-    const aPosition = this.gl.getAttribLocation(this.shaderProgram, 'aPosition');
+    const aPosition = this.gl.getAttribLocation(
+      this.shaderProgram,
+      this.isWebGL2 ? 'aPosition' : 'aPosition'
+    );
     this.gl.vertexAttribPointer(aPosition, 2, this.gl.FLOAT, false, 0, 0);
     this.gl.enableVertexAttribArray(aPosition);
 
@@ -419,7 +648,10 @@ export class WebGLRenderer implements IWebGLRenderer {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(colors), this.gl.STATIC_DRAW);
 
     // 绑定颜色属性
-    const aColor = this.gl.getAttribLocation(this.shaderProgram, 'aColor');
+    const aColor = this.gl.getAttribLocation(
+      this.shaderProgram,
+      this.isWebGL2 ? 'aColor' : 'aColor'
+    );
     this.gl.vertexAttribPointer(aColor, 3, this.gl.FLOAT, false, 0, 0);
     this.gl.enableVertexAttribArray(aColor);
 
@@ -428,6 +660,11 @@ export class WebGLRenderer implements IWebGLRenderer {
 
     // 绘制点
     this.gl.drawArrays(this.gl.POINTS, 0, metrics.length);
+
+    // 解除VAO绑定 (WebGL2)
+    if (this.isWebGL2 && this.vao) {
+      (this.gl as WebGL2RenderingContext).bindVertexArray(null);
+    }
   }
 
   /**
@@ -962,15 +1199,13 @@ export class WebGLRenderer implements IWebGLRenderer {
    */
   private calculatePerformance(): void {
     const now = performance.now();
-    this.lastRenderTime = now - this.frameTime;
-    this.frameTime = now;
-
     this.frameCount++;
 
     // 每秒更新一次FPS
     if (now - this.frameTime >= 1000) {
       this.fps = this.frameCount;
       this.frameCount = 0;
+      this.frameTime = now;
     }
   }
 }
