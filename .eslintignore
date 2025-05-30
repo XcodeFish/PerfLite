@@ -1,4 +1,0 @@
-# 忽略自动生成的文件
-src/parser/wasm/generated/**
-dist/**
-node_modules/** 

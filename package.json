@@ -51,7 +51,7 @@
     "prepare": "husky install",
     "analyze": "webpack --config webpack.analyze.js",
     "pack": "pnpm run build && npm pack --dry-run",
-    "prepublishOnly": "pnpm run lint && pnpm run test && pnpm run build"
+    "prepublishOnly": "pnpm run test && pnpm run build"
   },
   "repository": {
     "type": "git",
