@@ -5,7 +5,7 @@ export interface IErrorInfo {
   message: string;
   stack: string;
   timestamp: number;
-  type: 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'unknown';
+  type: 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'range' | 'unknown';
   source?: string;
   filename?: string;
   lineno?: number;

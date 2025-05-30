@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import md5 from 'md5';
+import { md5 } from '@/utils';
 import { IParsedError, IParseOptions } from '../types';
 import { WasmParser } from '@/parser/wasm';
-import { DeepSeekClient } from '@/parser/deepseek/client';
+import { deepseek } from '@/parser/deepseek';
 import { MemoryCache } from '../cache/memory';
+import { parser as parserFactory } from '@/parser';
 
 export class ErrorParser {
   private wasmParser: WasmParser;
-  private deepseekClient: DeepSeekClient;
   private cache: MemoryCache<IParsedError>;
   private complexStackThreshold: number;
   private apiCounter: APICounter;
@@ -21,9 +21,18 @@ export class ErrorParser {
   ) {
     this.complexStackThreshold = options.complexStackThreshold || 5;
     this.wasmParser = new WasmParser();
-    this.deepseekClient = new DeepSeekClient();
     this.cache = new MemoryCache<IParsedError>(options.maxCacheItems || 50);
     this.apiCounter = new APICounter();
+
+    // 配置DeepSeek
+    if (options.useDeepseek !== undefined) {
+      parserFactory.configureDeepSeek({
+        enabled: options.useDeepseek,
+      });
+    }
+
+    // 设置智能路由的复杂栈阈值
+    parserFactory.setComplexStackThreshold(this.complexStackThreshold);
   }
 
   /**
@@ -48,82 +57,114 @@ export class ErrorParser {
       return this.cache.get(cacheKey)!;
     }
 
-    // 判断错误栈的复杂度
-    const stackLines = sanitizedStack.split('\n');
-    const isComplex = stackLines.length > this.complexStackThreshold;
+    // 使用智能解析器工厂解析错误栈
+    try {
+      const frames = await parserFactory.parseStack(sanitizedStack);
 
-    // 根据复杂度和API配额决定使用哪种解析方式
-    let parsed: IParsedError;
+      // 创建解析结果
+      const parsed: IParsedError = {
+        message,
+        name,
+        stack: sanitizedStack,
+        timestamp: Date.now(),
+        type: this.determineErrorType(message, name),
+        parsedStack: frames,
+        frames: frames,
+        source: frames.length > this.complexStackThreshold ? 'deepseek' : 'local',
+      };
 
-    if (isComplex && this.apiCounter.check()) {
-      try {
-        parsed = await this.parseWithDeepSeek(sanitizedStack, message, name);
-        this.apiCounter.increment();
-      } catch (e) {
-        // 降级到本地解析
-        parsed = this.parseWithWasm(sanitizedStack, message, name);
-      }
-    } else {
-      parsed = this.parseWithWasm(sanitizedStack, message, name);
+      // 缓存结果
+      this.cache.set(cacheKey, parsed);
+      return parsed;
+    } catch (e) {
+      // 降级到基础解析
+      return this.createBasicError(sanitizedStack, message, name);
     }
-
-    // 缓存结果
-    this.cache.set(cacheKey, parsed);
-
-    return parsed;
   }
 
   /**
-   * 使用WASM解析器解析错误栈
+   * 确定错误类型
    */
-  private parseWithWasm(stack: string, message: string, name: string): IParsedError {
-    // 这里使用WASM同步方法的原因是：
-    // 1. API一致性，ErrorParser.parseWithWasm设计是同步
-    // 2.简单错误处理效率，对于简单错误（少于5层调用栈），WASM同步解析更快
-    // 降级策略：同步方法直接使用JS实现，提供了一个立即可用的降级方案，避免初始化延迟
-    // 用户体验：对于常见错误，提供即时响应比等待WASM加载更重要
-    // 错误处理流程：错误解析通常需要立即结果用于显示或记录，同步API简化了这一流程
-    const frames = this.wasmParser.parseStack(stack);
-
-    return {
-      message,
-      name,
-      stack,
-      timestamp: Date.now(),
-      source: 'local',
-      type: 'unknown',
-      parsedStack: frames,
-      frames: frames,
-    };
-  }
-
-  /**
-   * 使用DeepSeek API解析复杂错误栈
-   */
-  private async parseWithDeepSeek(
-    stack: string,
+  private determineErrorType(
     message: string,
     name: string
-  ): Promise<IParsedError> {
-    const result = await this.deepseekClient.parseError(stack);
+  ): 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'range' | 'unknown' {
+    if (name === 'TypeError') return 'type';
+    if (name === 'ReferenceError') return 'reference';
+    if (name === 'SyntaxError') return 'syntax';
+    if (name === 'RangeError') return 'range';
+    if (name.includes('Promise') || message.includes('promise') || message.includes('async'))
+      return 'promise';
+    if (name === 'NetworkError' || message.includes('network') || message.includes('fetch'))
+      return 'network';
+    return 'unknown';
+  }
+
+  /**
+   * 创建基础错误对象（降级方案）
+   */
+  private createBasicError(stack: string, message: string, name: string): IParsedError {
+    // 使用简单的正则表达式解析栈帧
+    const frames = this.parseBasicStackFrames(stack);
 
     return {
-      message,
-      name,
+      message: message || stack.split('\n')[0] || '',
+      name: name || 'Error',
       stack,
       timestamp: Date.now(),
-      source: 'deepseek',
-      type: 'unknown',
-      parsedStack: result.parsedStack,
-      frames: result.parsedStack,
+      type: this.determineErrorType(message, name),
+      parsedStack: frames,
+      frames: frames,
+      source: 'fallback',
     };
+  }
+
+  /**
+   * 基础的栈帧解析（降级方案）
+   */
+  private parseBasicStackFrames(stack: string): Array<{
+    functionName: string;
+    fileName: string;
+    lineNumber: number;
+    columnNumber: number;
+  }> {
+    const frames: Array<{
+      functionName: string;
+      fileName: string;
+      lineNumber: number;
+      columnNumber: number;
+    }> = [];
+    const lines = stack.split('\n').slice(1); // 跳过第一行（错误消息）
+
+    for (const line of lines) {
+      const atMatch = line.match(/at\s+(?:(.+?)\s+\((.+?):(\d+):(\d+)\)|(.+?):(\d+):(\d+))/);
+      if (atMatch) {
+        if (atMatch[1]) {
+          frames.push({
+            functionName: atMatch[1] || '<anonymous>',
+            fileName: atMatch[2] || '<unknown>',
+            lineNumber: parseInt(atMatch[3], 10) || 0,
+            columnNumber: parseInt(atMatch[4], 10) || 0,
+          });
+        } else {
+          frames.push({
+            functionName: '<anonymous>',
+            fileName: atMatch[5] || '<unknown>',
+            lineNumber: parseInt(atMatch[6], 10) || 0,
+            columnNumber: parseInt(atMatch[7], 10) || 0,
+          });
+        }
+      }
+    }
+
+    return frames;
   }
 
   /**
    * 数据脱敏处理
    */
   private sanitize(stack: string): string {
-    return stack.replace(/(password|token|key)=[^&\s]+/gi, '$1=[REDACTED]');
+    return stack.replace(/(password|token|key|secret|auth)=[^&\s]+/gi, '$1=[REDACTED]');
   }
 }
 
@@ -133,19 +174,50 @@ export class ErrorParser {
 class APICounter {
   private count: number;
   private readonly MAX_FREE: number = 1000;
+  private lastResetDate: number;
 
   constructor() {
-    this.count = parseInt(localStorage.getItem('deepseek_api_count') || '0', 10);
+    const storedCount = localStorage.getItem('deepseek_api_count');
+    const storedDate = localStorage.getItem('deepseek_api_timestamp');
+
+    this.count = storedCount ? parseInt(storedCount, 10) : 0;
+    this.lastResetDate = storedDate ? parseInt(storedDate, 10) : Date.now();
+
+    // 每天重置计数器
+    this.checkAndResetDaily();
   }
 
   public check(): boolean {
+    this.checkAndResetDaily();
     return this.count < this.MAX_FREE;
   }
 
   public increment(): void {
+    this.checkAndResetDaily();
     if (this.count < this.MAX_FREE) {
       this.count++;
-      localStorage.setItem('deepseek_api_count', this.count.toString());
+      this.saveState();
     }
+  }
+
+  private checkAndResetDaily(): void {
+    const now = new Date();
+    const lastDate = new Date(this.lastResetDate);
+
+    // 如果是新的一天，重置计数器
+    if (
+      now.getDate() !== lastDate.getDate() ||
+      now.getMonth() !== lastDate.getMonth() ||
+      now.getFullYear() !== lastDate.getFullYear()
+    ) {
+      this.count = 0;
+      this.lastResetDate = now.getTime();
+      this.saveState();
+    }
+  }
+
+  private saveState(): void {
+    localStorage.setItem('deepseek_api_count', this.count.toString());
+    localStorage.setItem('deepseek_api_timestamp', this.lastResetDate.toString());
   }
 }

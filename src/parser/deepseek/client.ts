@@ -65,14 +65,15 @@ export class DeepSeekClient {
     // 如果返回的是非结构化文本，需要提取关键信息
     let parsedStack: IStackFrame[] = [];
     let message = '';
-    let type = 'unknown';
+    let type: 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'range' | 'unknown' =
+      'unknown';
     let name = 'Error';
 
     if (response.analysis) {
       // 从API的分析中提取信息
       parsedStack = response.frames || [];
       message = response.message || '';
-      type = response.errorType || 'unknown';
+      type = this.mapErrorType(response.errorType || 'unknown');
       name = response.name || 'Error';
     } else {
       // 降级方案：基本解析
@@ -88,13 +89,34 @@ export class DeepSeekClient {
       name,
       stack: originalStack,
       timestamp: Date.now(),
-      type: type as any,
+      type,
       parsedStack,
       frames: parsedStack,
       rootCause: response.rootCause || '未知根本原因',
       suggestions: response.suggestions || [],
       source: 'deepseek',
     };
+  }
+
+  /**
+   * 映射错误类型
+   */
+  private mapErrorType(
+    type: string
+  ): 'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'range' | 'unknown' {
+    const typeMap: Record<
+      string,
+      'syntax' | 'reference' | 'type' | 'network' | 'promise' | 'range' | 'unknown'
+    > = {
+      TypeError: 'type',
+      ReferenceError: 'reference',
+      SyntaxError: 'syntax',
+      RangeError: 'range',
+      NetworkError: 'network',
+      PromiseError: 'promise',
+    };
+
+    return typeMap[type] || 'unknown';
   }
 
   /**
