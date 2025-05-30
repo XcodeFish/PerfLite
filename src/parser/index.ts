@@ -2,9 +2,9 @@
  * 解析器模块入口
  */
 import { WasmParser } from './wasm';
-import { IStackFrame } from '@/types';
-import { cacheManager } from '@/cache';
-import { md5 } from '@/utils';
+import { IStackFrame } from '../types';
+import { cacheManager } from '../cache';
+import { md5 } from '../utils';
 import { deepseek } from './deepseek';
 
 /**

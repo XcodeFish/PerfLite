@@ -1,16 +1,73 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { md5 } from '@/utils';
+import { md5 } from '../utils';
 import { IParsedError, IParseOptions } from '../types';
-import { WasmParser } from '@/parser/wasm';
-import { deepseek } from '@/parser/deepseek';
+// import { WasmParser } from '@/parser/wasm';
 import { MemoryCache } from '../cache/memory';
-import { parser as parserFactory } from '@/parser';
+import { parser as parserFactory } from '../parser';
+
+// 定义 APICounter 类作为 ErrorParser 的一部分
+/**
+ * API调用计数器，控制DeepSeek API的使用量
+ */
+/* 暂时未使用，保留代码结构以备后用
+class APICounter {
+  private count: number;
+  private readonly MAX_FREE: number = 1000;
+  private lastResetDate: number;
+
+  constructor() {
+    const storedCount = localStorage.getItem('deepseek_api_count');
+    const storedDate = localStorage.getItem('deepseek_api_timestamp');
+
+    this.count = storedCount ? parseInt(storedCount, 10) : 0;
+    this.lastResetDate = storedDate ? parseInt(storedDate, 10) : Date.now();
+
+    // 每天重置计数器
+    this.checkAndResetDaily();
+  }
+
+  public check(): boolean {
+    this.checkAndResetDaily();
+    return this.count < this.MAX_FREE;
+  }
+
+  public increment(): void {
+    this.checkAndResetDaily();
+    if (this.count < this.MAX_FREE) {
+      this.count++;
+      this.saveState();
+    }
+  }
+
+  private checkAndResetDaily(): void {
+    const now = new Date();
+    const lastDate = new Date(this.lastResetDate);
+
+    // 如果是新的一天，重置计数器
+    if (
+      now.getDate() !== lastDate.getDate() ||
+      now.getMonth() !== lastDate.getMonth() ||
+      now.getFullYear() !== lastDate.getFullYear()
+    ) {
+      this.count = 0;
+      this.lastResetDate = now.getTime();
+      this.saveState();
+    }
+  }
+
+  private saveState(): void {
+    localStorage.setItem('deepseek_api_count', this.count.toString());
+    localStorage.setItem('deepseek_api_timestamp', this.lastResetDate.toString());
+  }
+}
+*/
 
 export class ErrorParser {
-  private wasmParser: WasmParser;
+  // 标记为使用或删除未使用的实例变量
+  // private wasmParser: WasmParser;
   private cache: MemoryCache<IParsedError>;
   private complexStackThreshold: number;
-  private apiCounter: APICounter;
+  // private apiCounter: APICounter;
 
   constructor(
     options: {
@@ -20,9 +77,11 @@ export class ErrorParser {
     } = {}
   ) {
     this.complexStackThreshold = options.complexStackThreshold || 5;
-    this.wasmParser = new WasmParser();
+    // 我们不再直接使用wasmParser，而是通过parserFactory来处理
+    // this.wasmParser = new WasmParser();
     this.cache = new MemoryCache<IParsedError>(options.maxCacheItems || 50);
-    this.apiCounter = new APICounter();
+    // 未使用的API计数器
+    // this.apiCounter = new APICounter();
 
     // 配置DeepSeek
     if (options.useDeepseek !== undefined) {
@@ -165,59 +224,5 @@ export class ErrorParser {
    */
   private sanitize(stack: string): string {
     return stack.replace(/(password|token|key|secret|auth)=[^&\s]+/gi, '$1=[REDACTED]');
-  }
-}
-
-/**
- * API调用计数器，控制DeepSeek API的使用量
- */
-class APICounter {
-  private count: number;
-  private readonly MAX_FREE: number = 1000;
-  private lastResetDate: number;
-
-  constructor() {
-    const storedCount = localStorage.getItem('deepseek_api_count');
-    const storedDate = localStorage.getItem('deepseek_api_timestamp');
-
-    this.count = storedCount ? parseInt(storedCount, 10) : 0;
-    this.lastResetDate = storedDate ? parseInt(storedDate, 10) : Date.now();
-
-    // 每天重置计数器
-    this.checkAndResetDaily();
-  }
-
-  public check(): boolean {
-    this.checkAndResetDaily();
-    return this.count < this.MAX_FREE;
-  }
-
-  public increment(): void {
-    this.checkAndResetDaily();
-    if (this.count < this.MAX_FREE) {
-      this.count++;
-      this.saveState();
-    }
-  }
-
-  private checkAndResetDaily(): void {
-    const now = new Date();
-    const lastDate = new Date(this.lastResetDate);
-
-    // 如果是新的一天，重置计数器
-    if (
-      now.getDate() !== lastDate.getDate() ||
-      now.getMonth() !== lastDate.getMonth() ||
-      now.getFullYear() !== lastDate.getFullYear()
-    ) {
-      this.count = 0;
-      this.lastResetDate = now.getTime();
-      this.saveState();
-    }
-  }
-
-  private saveState(): void {
-    localStorage.setItem('deepseek_api_count', this.count.toString());
-    localStorage.setItem('deepseek_api_timestamp', this.lastResetDate.toString());
   }
 }
