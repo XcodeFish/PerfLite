@@ -1,3 +1,5 @@
+import { IParsedError } from './error';
+
 /**
  * 性能指标类型
  */
@@ -52,10 +54,24 @@ export interface IMemoryMetric extends IPerformanceMetric {
 }
 
 /**
+ * 资源计时信息
+ */
+export interface IResourceTiming {
+  name: string;
+  initiatorType: string;
+  startTime: number;
+  duration: number;
+  transferSize?: number;
+}
+
+/**
  * 性能时间线
  */
 export interface IPerformanceTimeline {
   metrics: IPerformanceMetric[];
+  resources: IResourceTiming[];
+  marks: { name: string; timestamp: number }[];
+  measures: { name: string; duration: number; timestamp: number }[];
   errors?: unknown[];
   sessionId: string;
   userId?: string;
@@ -100,6 +116,24 @@ export interface IPerformanceAnalysisResult {
     values: number[];
     trend: 'improving' | 'degrading' | 'stable';
   }[];
+}
+
+/**
+ * 带性能指标的错误
+ */
+export interface IErrorWithMetrics extends IParsedError {
+  relatedMetrics?: IPerformanceMetric[];
+  relatedResources?: IResourceTiming[];
+}
+
+/**
+ * 性能报告
+ */
+export interface IPerformanceReport {
+  timeline: IPerformanceTimeline;
+  errors: IErrorWithMetrics[];
+  score: number;
+  suggestions: string[];
 }
 
 /**

@@ -10,6 +10,7 @@ alwaysApply: true
 - 使用typescript
 - 输出不超出token，内部分成几个部分一一输出
 - 项目使用pnpm
+- 开发之前一定要先看我的目录结构以及目录下代码，再进行代码开发
 
 # 项目架构规范
 - 遵循混合架构设计：客户端SDK、WASM本地解析器和DeepSeek-V3社区版

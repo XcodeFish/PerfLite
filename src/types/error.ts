@@ -98,3 +98,11 @@ export interface IErrorGroup {
   samples: IParsedError[];
   isSolved: boolean;
 }
+
+/**
+ * 错误解析选项
+ */
+export interface IParseOptions {
+  sanitize?: boolean;
+  maxStackDepth?: number;
+}
