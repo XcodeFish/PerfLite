@@ -23,7 +23,8 @@ js-sys = "0.3"
 
 # 设置SIMD支持
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-rayon = { version = "1.0" }
+# 移除wasm-bindgen-rayon，因为它需要特殊的Webpack配置
+# wasm-bindgen-rayon = { version = "1.0" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use regex::Regex;
 use std::collections::HashMap;
-use crate::utils::{log, format_stack_frame};
+use crate::utils::{console_log, format_stack_frame};
 
 /// 错误栈帧结构
 #[wasm_bindgen]
@@ -15,6 +15,16 @@ pub struct StackFrame {
 
 #[wasm_bindgen]
 impl StackFrame {
+    /// 创建新的栈帧
+    pub fn new(function_name: String, file_name: String, line_number: u32, column_number: u32) -> Self {
+        StackFrame {
+            function_name,
+            file_name,
+            line_number,
+            column_number,
+        }
+    }
+    
     #[wasm_bindgen(getter)]
     pub fn function_name(&self) -> String {
         self.function_name.clone()

@@ -2,3 +2,9 @@ node_modules
 .DS_Store
 .cursor
 .vscode
+dist
+target
+rust/target
+rust/Cargo.lock
+rust/Cargo.toml
+rust/Cargo.lock

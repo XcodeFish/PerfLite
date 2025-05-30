@@ -1,121 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="70" failures="0" errors="0" time="4.033">
-  <testsuite name="Visualization" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="1.861" tests="2">
-    <testcase classname="Visualization should initialize visualization with element" name="Visualization should initialize visualization with element" time="0.016">
-    </testcase>
-    <testcase classname="Visualization should render visualization" name="Visualization should render visualization" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="可视化引擎端到端测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="1.889" tests="4">
-    <testcase classname="可视化引擎端到端测试 应能初始化可视化引擎" name="可视化引擎端到端测试 应能初始化可视化引擎" time="0.009">
-    </testcase>
-    <testcase classname="可视化引擎端到端测试 应能渲染数据" name="可视化引擎端到端测试 应能渲染数据" time="0.001">
-    </testcase>
-    <testcase classname="可视化引擎端到端测试 应能调用渲染方法而不出错" name="可视化引擎端到端测试 应能调用渲染方法而不出错" time="0.001">
-    </testcase>
-    <testcase classname="可视化引擎端到端测试 应能渲染仪表盘" name="可视化引擎端到端测试 应能渲染仪表盘" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="StorageCache" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="1.977" tests="4">
-    <testcase classname="StorageCache 应正确存储和检索值" name="StorageCache 应正确存储和检索值" time="0.05">
-    </testcase>
-    <testcase classname="StorageCache 应正确删除键" name="StorageCache 应正确删除键" time="0.006">
-    </testcase>
-    <testcase classname="StorageCache 应正确清空存储" name="StorageCache 应正确清空存储" time="0.009">
-    </testcase>
-    <testcase classname="StorageCache 应正确清理过期缓存" name="StorageCache 应正确清理过期缓存" time="0.006">
-    </testcase>
-  </testsuite>
-  <testsuite name="性能优化测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="2.047" tests="5">
-    <testcase classname="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该正确解析错误栈" name="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该正确解析错误栈" time="0.003">
-    </testcase>
-    <testcase classname="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该比标准解析器更快" name="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该比标准解析器更快" time="0.005">
-    </testcase>
-    <testcase classname="性能优化测试 数据压缩与传输优化 应该能够压缩和解压数据" name="性能优化测试 数据压缩与传输优化 应该能够压缩和解压数据" time="0.002">
-    </testcase>
-    <testcase classname="性能优化测试 数据压缩与传输优化 应该能够处理大型数据集" name="性能优化测试 数据压缩与传输优化 应该能够处理大型数据集" time="0.004">
-    </testcase>
-    <testcase classname="性能优化测试 数据压缩与传输优化 智能压缩应根据数据大小选择不同策略" name="性能优化测试 数据压缩与传输优化 智能压缩应根据数据大小选择不同策略" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="错误处理集成测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="0.076" tests="4">
-    <testcase classname="错误处理集成测试 应使用解析器工厂解析错误栈" name="错误处理集成测试 应使用解析器工厂解析错误栈" time="0.001">
-    </testcase>
-    <testcase classname="错误处理集成测试 解析器工厂失败时应降级到基础解析" name="错误处理集成测试 解析器工厂失败时应降级到基础解析" time="0">
-    </testcase>
-    <testcase classname="错误处理集成测试 复杂栈应将source标记为deepseek" name="错误处理集成测试 复杂栈应将source标记为deepseek" time="0.001">
-    </testcase>
-    <testcase classname="错误处理集成测试 解析错误时应支持数据脱敏" name="错误处理集成测试 解析错误时应支持数据脱敏" time="0.009">
-    </testcase>
-  </testsuite>
-  <testsuite name="WebGL渲染器" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="0.106" tests="12">
-    <testcase classname="WebGL渲染器 初始化渲染器" name="WebGL渲染器 初始化渲染器" time="0.011">
-    </testcase>
-    <testcase classname="WebGL渲染器 检测WebGL2" name="WebGL渲染器 检测WebGL2" time="0">
-    </testcase>
-    <testcase classname="WebGL渲染器 渲染图表" name="WebGL渲染器 渲染图表" time="0.002">
-    </testcase>
-    <testcase classname="WebGL渲染器 更新图表数据" name="WebGL渲染器 更新图表数据" time="0.003">
-    </testcase>
-    <testcase classname="WebGL渲染器 调整渲染器大小" name="WebGL渲染器 调整渲染器大小" time="0.002">
-    </testcase>
-    <testcase classname="WebGL渲染器 销毁渲染器" name="WebGL渲染器 销毁渲染器" time="0.001">
-    </testcase>
-    <testcase classname="WebGL渲染器 获取图表数据URL" name="WebGL渲染器 获取图表数据URL" time="0.001">
-    </testcase>
-    <testcase classname="WebGL渲染器 获取性能信息" name="WebGL渲染器 获取性能信息" time="0.002">
-    </testcase>
-    <testcase classname="WebGL渲染器 启用和禁用动画" name="WebGL渲染器 启用和禁用动画" time="0.001">
-    </testcase>
-    <testcase classname="WebGL渲染器 加载WebGL2扩展" name="WebGL渲染器 加载WebGL2扩展" time="0.002">
-    </testcase>
-    <testcase classname="WebGL渲染器 SIMD支持检测" name="WebGL渲染器 SIMD支持检测" time="0.002">
-    </testcase>
-    <testcase classname="WebGL渲染器 渲染状态管理" name="WebGL渲染器 渲染状态管理" time="0.005">
-    </testcase>
-  </testsuite>
-  <testsuite name="MemoryCache" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="2.602" tests="6">
-    <testcase classname="MemoryCache 应正确存储和检索值" name="MemoryCache 应正确存储和检索值" time="0.005">
-    </testcase>
-    <testcase classname="MemoryCache 应返回非存在键的undefined" name="MemoryCache 应返回非存在键的undefined" time="0">
-    </testcase>
-    <testcase classname="MemoryCache 应正确删除键" name="MemoryCache 应正确删除键" time="0.001">
-    </testcase>
-    <testcase classname="MemoryCache 应正确清除所有缓存" name="MemoryCache 应正确清除所有缓存" time="0">
-    </testcase>
-    <testcase classname="MemoryCache 应在超过最大容量时淘汰最旧项" name="MemoryCache 应在超过最大容量时淘汰最旧项" time="0.001">
-    </testcase>
-    <testcase classname="MemoryCache 缓存项应该在TTL后过期" name="MemoryCache 缓存项应该在TTL后过期" time="0.603">
-    </testcase>
-  </testsuite>
-  <testsuite name="性能分析集成测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="2.782" tests="3">
-    <testcase classname="性能分析集成测试 应正确收集页面加载性能指标" name="性能分析集成测试 应正确收集页面加载性能指标" time="0.005">
-    </testcase>
-    <testcase classname="性能分析集成测试 应正确分析性能指标" name="性能分析集成测试 应正确分析性能指标" time="0">
-    </testcase>
-    <testcase classname="性能分析集成测试 应正确检测低效的资源" name="性能分析集成测试 应正确检测低效的资源" time="0.008">
-    </testcase>
-  </testsuite>
-  <testsuite name="WASM Parser" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:45" time="2.862" tests="13">
-    <testcase classname="WASM Parser 解析器初始化" name="WASM Parser 解析器初始化" time="0.004">
+<testsuites name="jest tests" tests="82" failures="0" errors="0" time="6.089">
+  <testsuite name="WASM Parser" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.03" tests="13">
+    <testcase classname="WASM Parser 解析器初始化" name="WASM Parser 解析器初始化" time="0.003">
     </testcase>
     <testcase classname="WASM Parser 检测SIMD支持" name="WASM Parser 检测SIMD支持" time="0">
     </testcase>
-    <testcase classname="WASM Parser SIMD不支持时降级" name="WASM Parser SIMD不支持时降级" time="0.001">
+    <testcase classname="WASM Parser SIMD不支持时降级" name="WASM Parser SIMD不支持时降级" time="0">
     </testcase>
-    <testcase classname="WASM Parser 解析简单堆栈" name="WASM Parser 解析简单堆栈" time="0">
+    <testcase classname="WASM Parser 解析简单堆栈" name="WASM Parser 解析简单堆栈" time="0.001">
     </testcase>
     <testcase classname="WASM Parser 处理畸形堆栈" name="WASM Parser 处理畸形堆栈" time="0.001">
     </testcase>
     <testcase classname="WASM Parser 未初始化时自动初始化" name="WASM Parser 未初始化时自动初始化" time="0">
     </testcase>
-    <testcase classname="WASM Parser 多次初始化只加载一次WASM" name="WASM Parser 多次初始化只加载一次WASM" time="0.001">
+    <testcase classname="WASM Parser 多次初始化只加载一次WASM" name="WASM Parser 多次初始化只加载一次WASM" time="0.004">
     </testcase>
     <testcase classname="WASM Parser 并发解析多个错误栈" name="WASM Parser 并发解析多个错误栈" time="0.001">
     </testcase>
     <testcase classname="WASM Parser WASM加载失败时降级到JS解析" name="WASM Parser WASM加载失败时降级到JS解析" time="0">
     </testcase>
-    <testcase classname="WASM Parser [性能] 标准模式解析性能 - 15ms" name="WASM Parser [性能] 标准模式解析性能 - 15ms" time="0">
+    <testcase classname="WASM Parser [性能] 标准模式解析性能 - 15ms" name="WASM Parser [性能] 标准模式解析性能 - 15ms" time="0.001">
     </testcase>
     <testcase classname="WASM Parser [性能] SIMD模式解析性能 - 10ms" name="WASM Parser [性能] SIMD模式解析性能 - 10ms" time="0">
     </testcase>
@@ -124,48 +28,170 @@
     <testcase classname="WASM Parser 默认实例可用" name="WASM Parser 默认实例可用" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="ErrorParser" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="1.022" tests="3">
-    <testcase classname="ErrorParser should parse simple error stack correctly" name="ErrorParser should parse simple error stack correctly" time="0.001">
+  <testsuite name="WasmParser" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.077" tests="11">
+    <testcase classname="WasmParser should initialize correctly and report WASM support status" name="WasmParser should initialize correctly and report WASM support status" time="0.01">
+    </testcase>
+    <testcase classname="WasmParser should parse simple error stack correctly" name="WasmParser should parse simple error stack correctly" time="0.008">
+    </testcase>
+    <testcase classname="WasmParser should handle empty stack gracefully" name="WasmParser should handle empty stack gracefully" time="0.002">
+    </testcase>
+    <testcase classname="WasmParser should handle malformed stack gracefully" name="WasmParser should handle malformed stack gracefully" time="0">
+    </testcase>
+    <testcase classname="WasmParser should parse Firefox format stack correctly" name="WasmParser should parse Firefox format stack correctly" time="0.002">
+    </testcase>
+    <testcase classname="WasmParser should parse multiple frames correctly" name="WasmParser should parse multiple frames correctly" time="0.001">
+    </testcase>
+    <testcase classname="WasmParser should handle file paths with colons correctly" name="WasmParser should handle file paths with colons correctly" time="0.001">
+    </testcase>
+    <testcase classname="WasmParser should parse large stack traces efficiently" name="WasmParser should parse large stack traces efficiently" time="0">
+    </testcase>
+    <testcase classname="WasmParser should provide a synchronous fallback" name="WasmParser should provide a synchronous fallback" time="0.001">
+    </testcase>
+    <testcase classname="WasmParser should reset parser state correctly" name="WasmParser should reset parser state correctly" time="0">
+    </testcase>
+    <testcase classname="WasmParser should provide consistent results between WASM and JS fallback" name="WasmParser should provide consistent results between WASM and JS fallback" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="浏览器端到端测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.17" tests="4">
+    <testcase classname="浏览器端到端测试 应能在浏览器环境中初始化并运行" name="浏览器端到端测试 应能在浏览器环境中初始化并运行" time="0.003">
+    </testcase>
+    <testcase classname="浏览器端到端测试 应能解析错误栈" name="浏览器端到端测试 应能解析错误栈" time="0.002">
+    </testcase>
+    <testcase classname="浏览器端到端测试 应能记录性能指标" name="浏览器端到端测试 应能记录性能指标" time="0.002">
+    </testcase>
+    <testcase classname="浏览器端到端测试 应能正确处理本地存储" name="浏览器端到端测试 应能正确处理本地存储" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="DeepSeek解析器" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.066" tests="6">
+    <testcase classname="DeepSeek解析器 应正确初始化默认选项" name="DeepSeek解析器 应正确初始化默认选项" time="0.001">
+    </testcase>
+    <testcase classname="DeepSeek解析器 应正确合并自定义选项" name="DeepSeek解析器 应正确合并自定义选项" time="0">
+    </testcase>
+    <testcase classname="DeepSeek解析器 应正确更新选项" name="DeepSeek解析器 应正确更新选项" time="0.001">
+    </testcase>
+    <testcase classname="DeepSeek解析器 禁用时应抛出错误" name="DeepSeek解析器 禁用时应抛出错误" time="0.006">
+    </testcase>
+    <testcase classname="DeepSeek解析器 API调用计数应正确增加" name="DeepSeek解析器 API调用计数应正确增加" time="0.001">
+    </testcase>
+    <testcase classname="DeepSeek解析器 API限额检查应正常工作" name="DeepSeek解析器 API限额检查应正常工作" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="可视化引擎端到端测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.238" tests="4">
+    <testcase classname="可视化引擎端到端测试 应能初始化可视化引擎" name="可视化引擎端到端测试 应能初始化可视化引擎" time="0.019">
+    </testcase>
+    <testcase classname="可视化引擎端到端测试 应能渲染数据" name="可视化引擎端到端测试 应能渲染数据" time="0.001">
+    </testcase>
+    <testcase classname="可视化引擎端到端测试 应能调用渲染方法而不出错" name="可视化引擎端到端测试 应能调用渲染方法而不出错" time="0">
+    </testcase>
+    <testcase classname="可视化引擎端到端测试 应能渲染仪表盘" name="可视化引擎端到端测试 应能渲染仪表盘" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="ErrorParser" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.056" tests="3">
+    <testcase classname="ErrorParser should parse simple error stack correctly" name="ErrorParser should parse simple error stack correctly" time="0.002">
     </testcase>
     <testcase classname="ErrorParser should call DeepSeek API for complex errors" name="ErrorParser should call DeepSeek API for complex errors" time="0">
     </testcase>
     <testcase classname="ErrorParser should return cached result for previously parsed stack" name="ErrorParser should return cached result for previously parsed stack" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="浏览器端到端测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="1.118" tests="4">
-    <testcase classname="浏览器端到端测试 应能在浏览器环境中初始化并运行" name="浏览器端到端测试 应能在浏览器环境中初始化并运行" time="0.001">
+  <testsuite name="StorageCache" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.079" tests="4">
+    <testcase classname="StorageCache 应正确存储和检索值" name="StorageCache 应正确存储和检索值" time="0.01">
     </testcase>
-    <testcase classname="浏览器端到端测试 应能解析错误栈" name="浏览器端到端测试 应能解析错误栈" time="0.001">
+    <testcase classname="StorageCache 应正确删除键" name="StorageCache 应正确删除键" time="0.006">
     </testcase>
-    <testcase classname="浏览器端到端测试 应能记录性能指标" name="浏览器端到端测试 应能记录性能指标" time="0">
+    <testcase classname="StorageCache 应正确清空存储" name="StorageCache 应正确清空存储" time="0.008">
     </testcase>
-    <testcase classname="浏览器端到端测试 应能正确处理本地存储" name="浏览器端到端测试 应能正确处理本地存储" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="DeepSeek解析器" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="0.772" tests="6">
-    <testcase classname="DeepSeek解析器 应正确初始化默认选项" name="DeepSeek解析器 应正确初始化默认选项" time="0.001">
-    </testcase>
-    <testcase classname="DeepSeek解析器 应正确合并自定义选项" name="DeepSeek解析器 应正确合并自定义选项" time="0">
-    </testcase>
-    <testcase classname="DeepSeek解析器 应正确更新选项" name="DeepSeek解析器 应正确更新选项" time="0">
-    </testcase>
-    <testcase classname="DeepSeek解析器 禁用时应抛出错误" name="DeepSeek解析器 禁用时应抛出错误" time="0.003">
-    </testcase>
-    <testcase classname="DeepSeek解析器 API调用计数应正确增加" name="DeepSeek解析器 API调用计数应正确增加" time="0.001">
-    </testcase>
-    <testcase classname="DeepSeek解析器 API限额检查应正常工作" name="DeepSeek解析器 API限额检查应正常工作" time="0">
+    <testcase classname="StorageCache 应正确清理过期缓存" name="StorageCache 应正确清理过期缓存" time="0.005">
     </testcase>
   </testsuite>
-  <testsuite name="压力测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:46" time="1.193" tests="3">
-    <testcase classname="压力测试 ErrorParser高并发处理" name="压力测试 ErrorParser高并发处理" time="0.022">
+  <testsuite name="性能优化测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.299" tests="5">
+    <testcase classname="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该正确解析错误栈" name="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该正确解析错误栈" time="0.002">
     </testcase>
-    <testcase classname="压力测试 内存占用测试" name="压力测试 内存占用测试" time="0.038">
+    <testcase classname="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该比标准解析器更快" name="性能优化测试 SIMD加速WASM解析器 SIMD解析器应该比标准解析器更快" time="0.01">
     </testcase>
-    <testcase classname="压力测试 限流机制测试" name="压力测试 限流机制测试" time="0.006">
+    <testcase classname="性能优化测试 数据压缩与传输优化 应该能够压缩和解压数据" name="性能优化测试 数据压缩与传输优化 应该能够压缩和解压数据" time="0.001">
+    </testcase>
+    <testcase classname="性能优化测试 数据压缩与传输优化 应该能够处理大型数据集" name="性能优化测试 数据压缩与传输优化 应该能够处理大型数据集" time="0.003">
+    </testcase>
+    <testcase classname="性能优化测试 数据压缩与传输优化 智能压缩应根据数据大小选择不同策略" name="性能优化测试 数据压缩与传输优化 智能压缩应根据数据大小选择不同策略" time="0.005">
     </testcase>
   </testsuite>
-  <testsuite name="PerformanceAnalyzer" errors="0" failures="0" skipped="0" timestamp="2025-05-30T14:20:47" time="0.543" tests="1">
-    <testcase classname="PerformanceAnalyzer should correlate errors with performance metrics" name="PerformanceAnalyzer should correlate errors with performance metrics" time="0.001">
+  <testsuite name="错误处理集成测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.048" tests="4">
+    <testcase classname="错误处理集成测试 应使用解析器工厂解析错误栈" name="错误处理集成测试 应使用解析器工厂解析错误栈" time="0.001">
+    </testcase>
+    <testcase classname="错误处理集成测试 解析器工厂失败时应降级到基础解析" name="错误处理集成测试 解析器工厂失败时应降级到基础解析" time="0.001">
+    </testcase>
+    <testcase classname="错误处理集成测试 复杂栈应将source标记为deepseek" name="错误处理集成测试 复杂栈应将source标记为deepseek" time="0.001">
+    </testcase>
+    <testcase classname="错误处理集成测试 解析错误时应支持数据脱敏" name="错误处理集成测试 解析错误时应支持数据脱敏" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="性能分析集成测试" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="3.33" tests="3">
+    <testcase classname="性能分析集成测试 应正确收集页面加载性能指标" name="性能分析集成测试 应正确收集页面加载性能指标" time="0.003">
+    </testcase>
+    <testcase classname="性能分析集成测试 应正确分析性能指标" name="性能分析集成测试 应正确分析性能指标" time="0.002">
+    </testcase>
+    <testcase classname="性能分析集成测试 应正确检测低效的资源" name="性能分析集成测试 应正确检测低效的资源" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="Visualization" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.066" tests="2">
+    <testcase classname="Visualization should initialize visualization with element" name="Visualization should initialize visualization with element" time="0.011">
+    </testcase>
+    <testcase classname="Visualization should render visualization" name="Visualization should render visualization" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="PerformanceAnalyzer" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:41" time="0.033" tests="1">
+    <testcase classname="PerformanceAnalyzer should correlate errors with performance metrics" name="PerformanceAnalyzer should correlate errors with performance metrics" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="WebGL渲染器" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.094" tests="12">
+    <testcase classname="WebGL渲染器 初始化渲染器" name="WebGL渲染器 初始化渲染器" time="0.033">
+    </testcase>
+    <testcase classname="WebGL渲染器 检测WebGL2" name="WebGL渲染器 检测WebGL2" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 渲染图表" name="WebGL渲染器 渲染图表" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 更新图表数据" name="WebGL渲染器 更新图表数据" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 调整渲染器大小" name="WebGL渲染器 调整渲染器大小" time="0.002">
+    </testcase>
+    <testcase classname="WebGL渲染器 销毁渲染器" name="WebGL渲染器 销毁渲染器" time="0.004">
+    </testcase>
+    <testcase classname="WebGL渲染器 获取图表数据URL" name="WebGL渲染器 获取图表数据URL" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 获取性能信息" name="WebGL渲染器 获取性能信息" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 启用和禁用动画" name="WebGL渲染器 启用和禁用动画" time="0">
+    </testcase>
+    <testcase classname="WebGL渲染器 加载WebGL2扩展" name="WebGL渲染器 加载WebGL2扩展" time="0.002">
+    </testcase>
+    <testcase classname="WebGL渲染器 SIMD支持检测" name="WebGL渲染器 SIMD支持检测" time="0.001">
+    </testcase>
+    <testcase classname="WebGL渲染器 渲染状态管理" name="WebGL渲染器 渲染状态管理" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="MemoryCache" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:40" time="0.664" tests="6">
+    <testcase classname="MemoryCache 应正确存储和检索值" name="MemoryCache 应正确存储和检索值" time="0.001">
+    </testcase>
+    <testcase classname="MemoryCache 应返回非存在键的undefined" name="MemoryCache 应返回非存在键的undefined" time="0.001">
+    </testcase>
+    <testcase classname="MemoryCache 应正确删除键" name="MemoryCache 应正确删除键" time="0.001">
+    </testcase>
+    <testcase classname="MemoryCache 应正确清除所有缓存" name="MemoryCache 应正确清除所有缓存" time="0.001">
+    </testcase>
+    <testcase classname="MemoryCache 应在超过最大容量时淘汰最旧项" name="MemoryCache 应在超过最大容量时淘汰最旧项" time="0.002">
+    </testcase>
+    <testcase classname="MemoryCache 缓存项应该在TTL后过期" name="MemoryCache 缓存项应该在TTL后过期" time="0.601">
+    </testcase>
+  </testsuite>
+  <testsuite name="PerfLite Stress Tests" errors="0" failures="0" skipped="0" timestamp="2025-05-30T15:36:37" time="4.234" tests="4">
+    <testcase classname="PerfLite Stress Tests ErrorParser should handle high volume of errors without memory leaks" name="PerfLite Stress Tests ErrorParser should handle high volume of errors without memory leaks" time="0.077">
+    </testcase>
+    <testcase classname="PerfLite Stress Tests WasmParser should process 10k stack traces efficiently" name="PerfLite Stress Tests WasmParser should process 10k stack traces efficiently" time="0.386">
+    </testcase>
+    <testcase classname="PerfLite Stress Tests PerformanceAnalyzer should handle large performance data" name="PerfLite Stress Tests PerformanceAnalyzer should handle large performance data" time="0.001">
+    </testcase>
+    <testcase classname="PerfLite Stress Tests Full SDK should handle continuous monitoring without degradation" name="PerfLite Stress Tests Full SDK should handle continuous monitoring without degradation" time="0.551">
     </testcase>
   </testsuite>
 </testsuites>

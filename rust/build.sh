@@ -1,36 +1,16 @@
 #!/bin/bash
+set -e
 
-# 确保wasm-pack已安装
-if ! command -v wasm-pack &> /dev/null; then
-    echo "wasm-pack未安装，正在安装..."
-    cargo install wasm-pack
-fi
+echo "===== 开始构建WASM模块 ====="
 
-# 清理之前的构建
-rm -rf pkg
+# 使用cargo构建WASM
+echo "使用cargo构建WASM..."
+cargo build --release --target wasm32-unknown-unknown
 
-# 构建WASM模块（开发版本）
-echo "构建开发版本..."
-wasm-pack build --dev
+# 使用wasm-bindgen生成JS绑定
+echo "使用wasm-bindgen生成JS绑定..."
+mkdir -p ../src/parser/wasm/generated
+wasm-bindgen target/wasm32-unknown-unknown/release/perflite_wasm.wasm --out-dir ../src/parser/wasm/generated
 
-# 构建WASM模块（发布版本）
-echo "构建发布版本..."
-wasm-pack build --release --target web
-
-# 优化WASM文件大小
-if command -v wasm-gc &> /dev/null; then
-    echo "正在优化WASM文件大小..."
-    wasm-gc pkg/perflite_wasm_bg.wasm pkg/perflite_wasm_bg_optimized.wasm
-    mv pkg/perflite_wasm_bg_optimized.wasm pkg/perflite_wasm_bg.wasm
-else
-    echo "wasm-gc未安装，跳过优化步骤。推荐安装wasm-gc以获得更小的文件体积。"
-    echo "安装命令: cargo install wasm-gc"
-fi
-
-# 复制生成的文件到正确的位置
-echo "复制文件到项目结构..."
-mkdir -p ../dist/wasm
-cp pkg/perflite_wasm_bg.wasm ../dist/wasm/parser.wasm
-cp pkg/perflite_wasm.js ../dist/wasm/parser.js
-
-echo "WASM构建完成！"
+echo "WASM模块构建完成!"
+ls -lh ../src/parser/wasm/generated/

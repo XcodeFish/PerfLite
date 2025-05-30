@@ -11,6 +11,7 @@ mod utils;
 
 pub use parser::{ErrorParser, StackFrame};
 pub use simd::SimdParser;
+use utils::console_log;
 
 // 用于从WASM导出的栈帧结构体
 #[derive(Serialize, Deserialize)]
@@ -27,7 +28,7 @@ pub fn init_parser() {
     utils::set_panic_hook();
     
     // 在初始化时输出一些基本信息
-    utils::log("PerfLite WASM Parser 初始化完成");
+    console_log("PerfLite WASM Parser 初始化完成");
 }
 
 // 提供一个SIMD优化的解析器初始化函数
@@ -37,10 +38,10 @@ pub fn init_simd_parser() {
     
     // 确认是否支持SIMD
     #[cfg(target_feature = "simd128")]
-    utils::log("SIMD支持已启用");
+    console_log("SIMD支持已启用");
     
     #[cfg(not(target_feature = "simd128"))]
-    utils::log("SIMD支持未启用");
+    console_log("SIMD支持未启用");
 }
 
 // 标准版本解析栈信息，返回JSON字符串
@@ -51,7 +52,7 @@ pub fn parse(stack: &str) -> String {
     }
     
     let parser = ErrorParser::new();
-    let frames = parser.parse_frames(stack);
+    let frames = parser.parse_simd(stack);
     
     // 将栈帧转换为可导出格式
     let exported_frames: Vec<ExportedStackFrame> = frames.into_iter()
@@ -67,7 +68,7 @@ pub fn parse(stack: &str) -> String {
     match serde_json::to_string(&exported_frames) {
         Ok(json) => json,
         Err(e) => {
-            utils::log(&format!("JSON序列化错误: {}", e));
+            console_log(&format!("JSON序列化错误: {}", e));
             String::from("[]")
         }
     }
@@ -85,7 +86,7 @@ pub fn parse_numbers_simd(stack: &str) -> Vec<u32> {
 #[wasm_bindgen]
 #[cfg(not(target_feature = "simd128"))]
 pub fn parse_numbers_simd(stack: &str) -> Vec<u32> {
-    utils::log("SIMD未启用，使用标准解析");
+    console_log("SIMD未启用，使用标准解析");
     let parser = ErrorParser::new();
     parser.parse_numbers(stack)
 }
@@ -99,7 +100,7 @@ pub fn parse_stack_simd(stack: &str) -> String {
     }
     
     let parser = SimdParser::new();
-    let frames = parser.parse_stack(stack);
+    let frames = parser.parse_stack_simd(stack);
     
     // 将栈帧转换为可导出格式
     let exported_frames: Vec<ExportedStackFrame> = frames.into_iter()
@@ -115,7 +116,7 @@ pub fn parse_stack_simd(stack: &str) -> String {
     match serde_json::to_string(&exported_frames) {
         Ok(json) => json,
         Err(e) => {
-            utils::log(&format!("JSON序列化错误: {}", e));
+            console_log(&format!("JSON序列化错误: {}", e));
             String::from("[]")
         }
     }
@@ -125,7 +126,7 @@ pub fn parse_stack_simd(stack: &str) -> String {
 #[wasm_bindgen]
 #[cfg(not(target_feature = "simd128"))]
 pub fn parse_stack_simd(stack: &str) -> String {
-    utils::log("SIMD未启用，使用标准解析");
+    console_log("SIMD未启用，使用标准解析");
     parse(stack)
 }
 
@@ -141,7 +142,7 @@ pub fn parse_line_column_simd(stack: &str) -> Vec<u32> {
 #[wasm_bindgen]
 #[cfg(not(target_feature = "simd128"))]
 pub fn parse_line_column_simd(stack: &str) -> Vec<u32> {
-    utils::log("SIMD未启用，使用标准解析");
+    console_log("SIMD未启用，使用标准解析");
     let parser = ErrorParser::new();
     parser.parse_line_column(stack)
 }

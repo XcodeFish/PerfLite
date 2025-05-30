@@ -1,38 +1,21 @@
-const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
-const path = require('path');
+import { merge } from 'webpack-merge';
+import common from './webpack.common.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-module.exports = merge(common, {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default merge(common, {
   mode: 'development',
-  devtool: 'eval-source-map',
-  output: {
-    filename: 'perflite.js',
-    sourceMapFilename: 'perflite.js.map',
-  },
+  devtool: 'inline-source-map',
   devServer: {
     static: {
       directory: path.join(__dirname, 'examples/basic'),
     },
-    hot: true,
+    compress: true,
     port: 9000,
+    hot: true,
     open: true,
-    client: {
-      overlay: true,
-    },
   },
-  stats: {
-    colors: true,
-    modules: true,
-    reasons: true,
-    errorDetails: true,
-  },
-  cache: {
-    type: 'filesystem',
-    buildDependencies: {
-      config: [__filename],
-    },
-  },
-  watchOptions: {
-    ignored: /node_modules/,
-  },
-}); 
+});

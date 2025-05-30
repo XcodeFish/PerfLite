@@ -63,14 +63,14 @@ pub fn set_panic_hook() {
         );
         
         // 输出到浏览器控制台
-        error(&error_message);
+        console_error(&error_message);
     }));
 }
 
 /**
  * 向JavaScript控制台输出日志
  */
-pub fn log(message: &str) {
+pub fn console_log(message: &str) {
     #[cfg(target_arch = "wasm32")]
     {
         web_sys::console::log_1(&message.into());
@@ -84,7 +84,7 @@ pub fn log(message: &str) {
 /**
  * 向JavaScript控制台输出警告信息
  */
-pub fn warn(message: &str) {
+pub fn console_warn(message: &str) {
     #[cfg(target_arch = "wasm32")]
     {
         web_sys::console::warn_1(&message.into());
@@ -98,7 +98,7 @@ pub fn warn(message: &str) {
 /**
  * 向JavaScript控制台输出错误信息
  */
-pub fn error(message: &str) {
+pub fn console_error(message: &str) {
     #[cfg(target_arch = "wasm32")]
     {
         web_sys::console::error_1(&message.into());
@@ -115,7 +115,7 @@ pub fn error(message: &str) {
 pub fn log_with_timestamp(message: &str) {
     let timestamp = js_sys::Date::now();
     let timestamped_message = format!("[{}] {}", timestamp, message);
-    log(&timestamped_message);
+    console_log(&timestamped_message);
 }
 
 /**

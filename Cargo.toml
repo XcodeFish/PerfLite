@@ -9,7 +9,7 @@ repository = "https://github.com/yourusername/perflite"
 
 [lib]
 crate-type = ["cdylib"]
-path = "src/wasm/lib.rs"
+path = "rust/src/lib.rs"
 
 [dependencies]
 wasm-bindgen = "0.2.88"
@@ -17,6 +17,8 @@ regex = { version = "1.9.1", default-features = false }
 js-sys = "0.3.64"
 console_error_panic_hook = "0.1.7"
 web-sys = { version = "0.3.64", features = ["console"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.37"
@@ -38,7 +40,4 @@ strip = true
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-Oz", "--enable-simd"]
 
-# 性能基准测试
-[[bench]]
-name = "parser_benchmark"
-harness = false
+# 基准测试配置已移到rust/Cargo.toml

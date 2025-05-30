@@ -24,8 +24,68 @@ impl SimdParser {
 
     /// 使用SIMD指令加速完整错误栈解析
     #[wasm_bindgen]
-    pub fn parse_stack_simd(&self, stack: &str) -> String {
-        unsafe { self.simd_parse_stack(stack.as_bytes()) }
+    pub fn parse_stack_simd(&self, stack: &str) -> Vec<crate::parser::StackFrame> {
+        use crate::parser::StackFrame;
+        let mut frames = Vec::new();
+        
+        // 跳过空输入
+        if stack.is_empty() {
+            return frames;
+        }
+        
+        // 按行分割
+        for line in stack.lines() {
+            if line.contains(" at ") {
+                let parts: Vec<&str> = line.split(" at ").collect();
+                if parts.len() > 1 {
+                    let func_part = parts[1].trim();
+                    
+                    // 提取函数名
+                    let mut function_name = "";
+                    let mut file_name = "";
+                    let mut line_num = 0;
+                    let mut col_num = 0;
+                    
+                    if let Some(name_end) = func_part.find('(') {
+                        function_name = func_part[..name_end].trim();
+                        
+                        // 提取文件路径和行列号
+                        if func_part.len() > name_end {
+                            let file_part = &func_part[name_end..];
+                            let file_part = file_part.trim_start_matches('(').trim_end_matches(')');
+                            
+                            let location_parts: Vec<&str> = file_part.split(':').collect();
+                            file_name = location_parts[0];
+                            
+                            if location_parts.len() > 1 {
+                                if let Ok(l) = location_parts[1].parse::<u32>() {
+                                    line_num = l;
+                                }
+                            }
+                            
+                            if location_parts.len() > 2 {
+                                if let Ok(c) = location_parts[2].parse::<u32>() {
+                                    col_num = c;
+                                }
+                            }
+                        }
+                    } else {
+                        // 尝试直接提取
+                        function_name = func_part;
+                    }
+                    
+                    // 创建栈帧并添加到结果中
+                    frames.push(StackFrame::new(
+                        function_name.to_string(),
+                        file_name.to_string(),
+                        line_num,
+                        col_num
+                    ));
+                }
+            }
+        }
+        
+        frames
     }
 
     /// SIMD优化的数字提取

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { StorageCache } from '../../src/cache/storage';
+import { StorageCache } from '../../src/cache/Storage';
 
 // 模拟 indexedDB
 const mockIndexedDB = (() => {

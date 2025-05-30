@@ -1,7 +1,15 @@
-const path = require('path');
-const webpack = require('webpack');
+import path from 'path';
+import webpack from 'webpack';
+import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 
-module.exports = {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 读取package.json
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+
+export default {
   entry: {
     perflite: './src/index.ts',
   },
@@ -9,7 +17,16 @@ module.exports = {
     rules: [
       {
         test: /\.ts$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            compilerOptions: {
+              declaration: false, // 构建时不生成声明文件
+              declarationDir: undefined, // 移除declarationDir设置
+              removeComments: true, // 删除注释
+            },
+          },
+        },
         exclude: /node_modules/,
       },
       // 处理WASM文件
@@ -24,11 +41,37 @@ module.exports = {
       {
         test: /src\/parser\/wasm\/generated\/.+\.js$/,
         type: 'javascript/auto',
-        loader: 'babel-loader',
-        options: {
-          presets: ['@babel/preset-env'],
-          plugins: ['@babel/plugin-syntax-dynamic-import']
-        }
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                [
+                  '@babel/preset-env',
+                  {
+                    targets: '> 1%, not dead',
+                    modules: false, // 保留ES模块语法以启用tree shaking
+                    useBuiltIns: 'usage',
+                    corejs: 3,
+                  },
+                ],
+              ],
+              plugins: [
+                '@babel/plugin-syntax-dynamic-import',
+                // 删除没有使用的导入
+                'babel-plugin-transform-remove-imports',
+              ],
+            },
+          },
+          // 用于删除不必要的代码
+          {
+            loader: 'string-replace-loader',
+            options: {
+              search: /\/\/ @ts-(ignore|nocheck|expect-error)/g,
+              replace: '',
+            },
+          },
+        ],
       },
     ],
   },
@@ -38,8 +81,8 @@ module.exports = {
       '@': path.resolve(__dirname, 'src'),
     },
     fallback: {
-      'path': false,
-      'fs': false,
+      path: false,
+      fs: false,
     },
   },
   output: {
@@ -50,50 +93,20 @@ module.exports = {
       export: 'default',
     },
     globalObject: 'this',
-    clean: true,
+    pathinfo: false, // 减少文件路径信息
   },
   experiments: {
-    asyncWebAssembly: true,
+    asyncWebAssembly: true, // 异步加载WASM
     topLevelAwait: true,
   },
   optimization: {
     moduleIds: 'deterministic',
-    splitChunks: {
-      cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-        },
-        wasm: {
-          test: /\.wasm$/,
-          type: 'asset/resource',
-          chunks: 'async',
-        },
-      },
-    },
-    runtimeChunk: 'single',
+    usedExports: true, // 启用tree-shaking
+    sideEffects: true, // 尊重package.json中的sideEffects标记
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.VERSION': JSON.stringify(require('./package.json').version),
+      'process.env.VERSION': JSON.stringify(pkg.version),
     }),
-    // 确保WASM加载后再执行后续代码
-    new webpack.NormalModuleReplacementPlugin(
-      /src\/parser\/wasm\/index\.ts$/,
-      resource => {
-        if (resource.context.includes('node_modules')) {
-          return;
-        }
-        resource.loaders.push({
-          loader: 'string-replace-loader',
-          options: {
-            search: 'import {',
-            replace: 'const wasmPromise = import(/* webpackMode: "eager" */ \'./generated/perflite_wasm_bg.wasm\');\nimport {',
-            flags: 'g'
-          }
-        });
-      }
-    ),
   ],
-}; 
+};
