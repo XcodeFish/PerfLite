@@ -2,7 +2,7 @@
 import { md5 } from '../utils';
 import { IParsedError, IParseOptions } from '../types';
 // import { WasmParser } from '@/parser/wasm';
-import { MemoryCache } from '../cache/memory';
+import { MemoryCache } from '../cache/Memory';
 import { parser as parserFactory } from '../parser';
 
 // 定义 APICounter 类作为 ErrorParser 的一部分

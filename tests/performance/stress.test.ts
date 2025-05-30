@@ -5,8 +5,6 @@
 // tests/performance/stress.test.ts
 import { ErrorParser } from '../../src/core/ErrorParser';
 import { PerformanceAnalyzer } from '../../src/core/PerformanceAnalyzer';
-import { wasmParser } from '../../src/parser/wasm';
-import { StorageCache } from '../../src/cache/storage';
 import { IParsedError } from '../../src/types/error';
 import { IPerformanceMetric } from '../../src/types/perf';
 
@@ -18,21 +16,6 @@ const isNodeEnvironment =
 
 // 禁用正常超时时间
 jest.setTimeout(60000); // 60秒超时
-
-// 测试用例相关的类型定义
-interface MemoryUsage {
-  rss: number;
-  heapTotal: number;
-  heapUsed: number;
-  external: number;
-  arrayBuffers: number;
-}
-
-interface PerformanceResult {
-  operations: number;
-  time: number;
-  opsPerSecond: number;
-}
 
 describe('压力测试', () => {
   // 模拟真实错误场景的生成器

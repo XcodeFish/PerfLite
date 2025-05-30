@@ -1,8 +1,8 @@
 /**
  * 缓存系统入口
  */
-import { MemoryCache } from './memory';
-import { StorageCache } from './storage';
+import { MemoryCache } from './Memory';
+import { StorageCache } from './Storage';
 
 export { MemoryCache, StorageCache };
 

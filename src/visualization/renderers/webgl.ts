@@ -41,7 +41,6 @@ export class WebGLRenderer implements IWebGLRenderer {
   // 缓冲区
   private vertexBuffer: WebGLBuffer | null = null;
   private colorBuffer: WebGLBuffer | null = null;
-  private indexBuffer: WebGLBuffer | null = null;
 
   // 顶点数组对象 (WebGL2)
   private vao: WebGLVertexArrayObject | null = null;
