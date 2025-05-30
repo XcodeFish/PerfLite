@@ -14,6 +14,32 @@ export interface IChartData {
     start: number;
     end: number;
   };
+
+  // 热力图数据结构
+  heatmap?: {
+    data: number[]; // 热力图值数组
+    width: number; // 热力图宽度
+    height: number; // 热力图高度
+    xLabels?: string[]; // X轴标签
+    yLabels?: string[]; // Y轴标签
+  };
+
+  // 桑基图数据结构
+  sankey?: {
+    nodes: {
+      id: string;
+      name?: string;
+      value?: number;
+      group?: string;
+      targets?: string[];
+    }[];
+    links: {
+      source: string;
+      target: string;
+      value?: number;
+      color?: string;
+    }[];
+  };
 }
 
 /**

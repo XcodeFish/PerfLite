@@ -103,6 +103,9 @@ export class WebGLRenderer implements IWebGLRenderer {
       case 'heatmap':
         this.renderHeatmap();
         break;
+      case 'sankey':
+        this.renderSankeyDiagram();
+        break;
       default:
         this.renderLineChart(); // 默认为折线图
     }
@@ -449,9 +452,98 @@ export class WebGLRenderer implements IWebGLRenderer {
    * 渲染热力图
    */
   private renderHeatmap(): void {
-    if (!this.gl || !this.canvas || !this.data.metrics || !this.shaderProgram) return;
+    if (!this.gl || !this.data.heatmap) return;
 
-    // 热力图实现...
+    const { data, width, height } = this.data.heatmap;
+    if (!data || !width || !height) return;
+
+    // 创建纹理
+    const texture = this.gl.createTexture();
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+    // 设置纹理参数
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+
+    // 创建纹理数据
+    const textureData = new Uint8Array(width * height * 4);
+
+    // 计算最大值和最小值
+    let max = Number.NEGATIVE_INFINITY;
+    let min = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < data.length; i++) {
+      max = Math.max(max, data[i]);
+      min = Math.min(min, data[i]);
+    }
+
+    const range = max - min;
+
+    // 填充纹理数据
+    for (let i = 0; i < data.length; i++) {
+      const value = (data[i] - min) / range; // 归一化
+      const colorIndex = Math.floor(value * 4) * 3;
+
+      // 使用预定义的热力图颜色映射
+      const colors = this.getHeatmapColorMap();
+      const r = colors[colorIndex];
+      const g = colors[colorIndex + 1];
+      const b = colors[colorIndex + 2];
+      const a = 255;
+
+      const index = i * 4;
+      textureData[index] = r;
+      textureData[index + 1] = g;
+      textureData[index + 2] = b;
+      textureData[index + 3] = a;
+    }
+
+    // 将纹理数据传输到GPU
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      width,
+      height,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      textureData
+    );
+
+    // 创建顶点位置数据
+    const positions = [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0];
+
+    // 创建纹理坐标数据
+    const texCoords = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+
+    // 创建并绑定顶点位置缓冲区
+    const positionBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+
+    const positionLocation = this.gl.getAttribLocation(this.shaderProgram!, 'a_position');
+    this.gl.enableVertexAttribArray(positionLocation);
+    this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+    // 创建并绑定纹理坐标缓冲区
+    const texCoordBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, texCoordBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(texCoords), this.gl.STATIC_DRAW);
+
+    const texCoordLocation = this.gl.getAttribLocation(this.shaderProgram!, 'a_texCoord');
+    this.gl.enableVertexAttribArray(texCoordLocation);
+    this.gl.vertexAttribPointer(texCoordLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+    // 绘制
+    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+    // 清理
+    this.gl.deleteBuffer(positionBuffer);
+    this.gl.deleteBuffer(texCoordBuffer);
+    this.gl.deleteTexture(texture);
   }
 
   /**
@@ -464,6 +556,405 @@ export class WebGLRenderer implements IWebGLRenderer {
 
     // RGB颜色值 (0-1范围)
     return isDark ? [0.8, 0.8, 0.8] : [0.2, 0.6, 0.9];
+  }
+
+  /**
+   * 渲染桑基图
+   */
+  private renderSankeyDiagram(): void {
+    if (!this.gl || !this.data.sankey) return;
+
+    const { nodes, links } = this.data.sankey;
+    if (!nodes || !links) return;
+
+    // 第1步：计算节点位置
+    const nodeMap = new Map();
+    const columns = this.calculateNodeColumns(nodes);
+    const totalColumns = Math.max(...Object.values(columns)) + 1;
+    const canvasWidth = this.canvas!.width;
+    const canvasHeight = this.canvas!.height;
+    const padding = 50 * this.pixelRatio;
+    const columnWidth = (canvasWidth - padding * 2) / totalColumns;
+
+    // 计算每列的节点数量，用于确定节点高度
+    const columnCounts = Array(totalColumns).fill(0);
+    nodes.forEach((node) => columnCounts[columns[node.id]]++);
+
+    // 计算每列节点的位置
+    const columnPointers = Array(totalColumns).fill(0);
+    nodes.forEach((node) => {
+      const col = columns[node.id];
+      const x = padding + col * columnWidth + columnWidth / 2;
+      const availHeight = canvasHeight - padding * 2;
+      const nodeCount = columnCounts[col];
+      const yStep = availHeight / nodeCount;
+      const y = padding + columnPointers[col] * yStep + yStep / 2;
+
+      columnPointers[col]++;
+
+      nodeMap.set(node.id, {
+        x,
+        y,
+        width: columnWidth * 0.8,
+        height: Math.min(yStep * 0.8, 50 * this.pixelRatio),
+        value: node.value || 1,
+      });
+    });
+
+    // 第2步：渲染节点
+    const nodeVertices: number[] = [];
+    const nodeColors: number[] = [];
+
+    nodes.forEach((node) => {
+      const nodeInfo = nodeMap.get(node.id);
+      if (!nodeInfo) return;
+
+      const { x, y, width, height } = nodeInfo;
+      const halfWidth = width / 2;
+      const halfHeight = height / 2;
+
+      // 每个节点由两个三角形组成，共6个顶点
+      const x1 = x - halfWidth;
+      const x2 = x + halfWidth;
+      const y1 = y - halfHeight;
+      const y2 = y + halfHeight;
+
+      // 转换为归一化设备坐标 (-1 到 1)
+      const nx1 = (x1 / this.canvas!.width) * 2 - 1;
+      const nx2 = (x2 / this.canvas!.width) * 2 - 1;
+      const ny1 = -((y1 / this.canvas!.height) * 2 - 1); // WebGL Y轴向下
+      const ny2 = -((y2 / this.canvas!.height) * 2 - 1);
+
+      // 添加顶点
+      nodeVertices.push(
+        nx1,
+        ny1,
+        nx2,
+        ny1,
+        nx1,
+        ny2, // 第一个三角形
+        nx1,
+        ny2,
+        nx2,
+        ny1,
+        nx2,
+        ny2 // 第二个三角形
+      );
+
+      // 节点颜色
+      const color = this.getNodeColor(node.id, node.group);
+      for (let i = 0; i < 6; i++) {
+        nodeColors.push(...color); // 对每个顶点重复颜色
+      }
+    });
+
+    // 创建并绑定节点顶点缓冲区
+    const nodeVertexBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, nodeVertexBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(nodeVertices), this.gl.STATIC_DRAW);
+
+    const positionLocation = this.gl.getAttribLocation(this.shaderProgram!, 'a_position');
+    this.gl.enableVertexAttribArray(positionLocation);
+    this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+    // 创建并绑定节点颜色缓冲区
+    const nodeColorBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, nodeColorBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(nodeColors), this.gl.STATIC_DRAW);
+
+    const colorLocation = this.gl.getAttribLocation(this.shaderProgram!, 'a_color');
+    this.gl.enableVertexAttribArray(colorLocation);
+    this.gl.vertexAttribPointer(colorLocation, 4, this.gl.FLOAT, false, 0, 0);
+
+    // 绘制节点
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, nodeVertices.length / 2);
+
+    // 第3步：渲染连接
+    const linkVertices: number[] = [];
+    const linkColors: number[] = [];
+
+    links.forEach((link) => {
+      const source = nodeMap.get(link.source);
+      const target = nodeMap.get(link.target);
+      if (!source || !target) return;
+
+      // 连接的宽度与值成比例
+      const linkValue = link.value || Math.min(source.value, target.value) * 0.1;
+      const sourceWidth = Math.min(source.height, linkValue * this.pixelRatio * 4);
+      const targetWidth = Math.min(target.height, linkValue * this.pixelRatio * 4);
+
+      // 计算连接的起点和终点
+      const x1 = source.x + source.width / 2;
+      const y1 = source.y;
+      const x2 = target.x - target.width / 2;
+      const y2 = target.y;
+
+      // 贝塞尔曲线控制点
+      const cpx = (x1 + x2) / 2;
+
+      // 创建光滑曲线连接（使用多个线段近似贝塞尔曲线）
+      const segments = 20;
+      const points: Array<{ x: number; y: number }> = [];
+
+      // 计算曲线点
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const x = this.bezierX(x1, cpx, x2, t);
+        const y = this.bezierY(y1, y2, t);
+        points.push({ x, y });
+      }
+
+      // 创建连接的边界线（上下两条）
+      const topPoints: Array<{ x: number; y: number }> = [];
+      const bottomPoints: Array<{ x: number; y: number }> = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const width = sourceWidth + (targetWidth - sourceWidth) * (i / segments);
+        const halfWidth = width / 2;
+        topPoints.push({
+          x: points[i].x,
+          y: points[i].y - halfWidth,
+        });
+        bottomPoints.push({
+          x: points[i].x,
+          y: points[i].y + halfWidth,
+        });
+      }
+
+      // 转换为三角形
+      for (let i = 0; i < segments; i++) {
+        const p1 = topPoints[i];
+        const p2 = bottomPoints[i];
+        const p3 = topPoints[i + 1];
+        const p4 = bottomPoints[i + 1];
+
+        // 转换为归一化设备坐标
+        const nx1 = (p1.x / this.canvas!.width) * 2 - 1;
+        const ny1 = -((p1.y / this.canvas!.height) * 2 - 1);
+        const nx2 = (p2.x / this.canvas!.width) * 2 - 1;
+        const ny2 = -((p2.y / this.canvas!.height) * 2 - 1);
+        const nx3 = (p3.x / this.canvas!.width) * 2 - 1;
+        const ny3 = -((p3.y / this.canvas!.height) * 2 - 1);
+        const nx4 = (p4.x / this.canvas!.width) * 2 - 1;
+        const ny4 = -((p4.y / this.canvas!.height) * 2 - 1);
+
+        linkVertices.push(
+          nx1,
+          ny1,
+          nx2,
+          ny2,
+          nx3,
+          ny3, // 第一个三角形
+          nx3,
+          ny3,
+          nx2,
+          ny2,
+          nx4,
+          ny4 // 第二个三角形
+        );
+
+        // 连接颜色
+        const color = this.getLinkColor(link.source, link.target, link.color);
+        for (let j = 0; j < 6; j++) {
+          linkColors.push(...color); // 对每个顶点重复颜色
+        }
+      }
+    });
+
+    // 创建并绑定连接顶点缓冲区
+    const linkVertexBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, linkVertexBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(linkVertices), this.gl.STATIC_DRAW);
+
+    this.gl.enableVertexAttribArray(positionLocation);
+    this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+    // 创建并绑定连接颜色缓冲区
+    const linkColorBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, linkColorBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(linkColors), this.gl.STATIC_DRAW);
+
+    this.gl.enableVertexAttribArray(colorLocation);
+    this.gl.vertexAttribPointer(colorLocation, 4, this.gl.FLOAT, false, 0, 0);
+
+    // 启用混合
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+    // 绘制连接
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, linkVertices.length / 2);
+
+    // 禁用混合
+    this.gl.disable(this.gl.BLEND);
+
+    // 清理
+    this.gl.deleteBuffer(nodeVertexBuffer);
+    this.gl.deleteBuffer(nodeColorBuffer);
+    this.gl.deleteBuffer(linkVertexBuffer);
+    this.gl.deleteBuffer(linkColorBuffer);
+  }
+
+  /**
+   * 计算节点列位置
+   */
+  private calculateNodeColumns(
+    nodes: Array<{
+      id: string;
+      name?: string;
+      value?: number;
+      group?: string;
+      targets?: string[];
+    }>
+  ): Record<string, number> {
+    const columns: Record<string, number> = {};
+    const visited = new Set<string>();
+    const nodeMap = new Map<
+      string,
+      {
+        id: string;
+        name?: string;
+        value?: number;
+        group?: string;
+        targets?: string[];
+      }
+    >();
+
+    // 创建节点映射
+    nodes.forEach((node) => {
+      nodeMap.set(node.id, node);
+    });
+
+    // 找出所有源节点（没有入边的节点）
+    const sources = nodes.filter(
+      (node) => !nodes.some((n) => n.targets && n.targets.includes(node.id))
+    );
+
+    // 使用BFS确定节点列位置
+    const queue = sources.map((node) => ({ id: node.id, col: 0 }));
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+
+      if (visited.has(current.id)) {
+        columns[current.id] = Math.max(columns[current.id], current.col);
+        continue;
+      }
+
+      visited.add(current.id);
+      columns[current.id] = current.col;
+
+      const node = nodeMap.get(current.id);
+      if (node && node.targets) {
+        for (const targetId of node.targets) {
+          queue.push({ id: targetId, col: current.col + 1 });
+        }
+      }
+    }
+
+    return columns;
+  }
+
+  /**
+   * 计算贝塞尔曲线X坐标
+   */
+  private bezierX(x1: number, cpx: number, x2: number, t: number): number {
+    const t1 = 1 - t;
+    return t1 * t1 * x1 + 2 * t1 * t * cpx + t * t * x2;
+  }
+
+  /**
+   * 计算贝塞尔曲线Y坐标
+   */
+  private bezierY(y1: number, y2: number, t: number): number {
+    return y1 + (y2 - y1) * t;
+  }
+
+  /**
+   * 获取节点颜色
+   */
+  private getNodeColor(id: string, group?: string): [number, number, number, number] {
+    // 颜色映射表
+    const colorMap: Record<string, [number, number, number, number]> = {
+      default: [0.2, 0.6, 0.9, 0.9],
+      error: [0.9, 0.3, 0.3, 0.9],
+      warning: [0.9, 0.7, 0.3, 0.9],
+      success: [0.3, 0.8, 0.4, 0.9],
+    };
+
+    if (group && colorMap[group]) {
+      return colorMap[group];
+    }
+
+    // 如果没有组或组不在映射表中，则根据ID生成一个稳定的颜色
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash << 5) - hash + id.charCodeAt(i);
+      hash |= 0;
+    }
+
+    const r = Math.abs(hash & 0xff) / 255;
+    const g = Math.abs((hash >> 8) & 0xff) / 255;
+    const b = Math.abs((hash >> 16) & 0xff) / 255;
+
+    return [r, g, b, 0.9];
+  }
+
+  /**
+   * 获取连接颜色
+   */
+  private getLinkColor(
+    source: string,
+    target: string,
+    color?: string
+  ): [number, number, number, number] {
+    if (color) {
+      const hexColor = color.startsWith('#') ? color : `#${color}`;
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor);
+
+      if (result) {
+        return [
+          parseInt(result[1], 16) / 255,
+          parseInt(result[2], 16) / 255,
+          parseInt(result[3], 16) / 255,
+          0.7, // 链接半透明
+        ];
+      }
+    }
+
+    // 如果没有指定颜色，使用源节点和目标节点的混合颜色
+    const sourceColor = this.getNodeColor(source);
+    const targetColor = this.getNodeColor(target);
+
+    return [
+      (sourceColor[0] + targetColor[0]) / 2,
+      (sourceColor[1] + targetColor[1]) / 2,
+      (sourceColor[2] + targetColor[2]) / 2,
+      0.7, // 链接半透明
+    ];
+  }
+
+  /**
+   * 获取热力图颜色映射
+   */
+  private getHeatmapColorMap(): number[] {
+    // 从冷到热的颜色映射
+    return [
+      0,
+      0,
+      255, // 蓝色
+      0,
+      255,
+      255, // 青色
+      0,
+      255,
+      0, // 绿色
+      255,
+      255,
+      0, // 黄色
+      255,
+      0,
+      0, // 红色
+    ];
   }
 
   /**

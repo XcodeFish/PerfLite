@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PerfLite - React性能监控示例</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script src="../../dist/perflite.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel {
+      margin-bottom: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 15px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      background-color: #4c6ef5;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      background-color: #3b5bdb;
+    }
+
+    .btn-secondary {
+      background-color: #868e96;
+    }
+
+    .btn-secondary:hover {
+      background-color: #495057;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+    }
+
+    .table th,
+    .table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .table th {
+      background-color: #f8f9fa;
+    }
+
+    .status {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-high {
+      background-color: #fa5252;
+      color: white;
+    }
+
+    .status-medium {
+      background-color: #ff922b;
+      color: white;
+    }
+
+    .status-low {
+      background-color: #20c997;
+      color: white;
+    }
+
+    .counter {
+      background-color: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .todo-app {
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .todo-header {
+      display: flex;
+      margin-bottom: 15px;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px 0 0 4px;
+      font-size: 16px;
+    }
+
+    .todo-add-btn {
+      border: none;
+      background-color: #4c6ef5;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 0 4px 4px 0;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .todo-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .todo-text {
+      flex: 1;
+      margin-left: 10px;
+    }
+
+    .todo-delete {
+      color: #ff6b6b;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 16px;
+    }
+
+    .filter-buttons {
+      display: flex;
+      margin-top: 15px;
+      gap: 10px;
+    }
+
+    .filter-btn {
+      background-color: #e9ecef;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .filter-btn.active {
+      background-color: #4c6ef5;
+      color: white;
+    }
+
+    .error {
+      color: #e03131;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>PerfLite - React性能监控示例</h1>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>React插件状态</h2>
+        <div>
+          <button id="refresh-btn" class="btn">刷新性能数据</button>
+          <button id="reset-btn" class="btn btn-secondary">重置数据</button>
+        </div>
+      </div>
+      <div id="react-info"></div>
+    </div>
+
+    <div class="panel">
+      <h2>性能问题</h2>
+      <div id="performance-issues">
+        <p>等待收集性能数据...</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>组件渲染统计</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="slow">渲染最慢的组件</button>
+        <button class="tab" data-tab="renders">重渲染最多的组件</button>
+      </div>
+
+      <div class="tab-content" id="tab-slow">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>组件名称</th>
+              <th>平均渲染时间 (ms)</th>
+              <th>渲染次数</th>
+            </tr>
+          </thead>
+          <tbody id="slow-components"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-content" id="tab-renders" style="display: none;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>组件名称</th>
+              <th>渲染次数</th>
+            </tr>
+          </thead>
+          <tbody id="render-count-components"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="react-app"></div>
+  </div>
+
+  <script type="text/babel">
+    // 初始化PerfLite
+    const perfLite = PerfLite.init({
+      appId: 'react-performance-demo',
+      deepseek: {
+        enable: false
+      }
+    })
+
+    // 有问题的TodoApp实现，会导致性能问题
+    const TodoApp = () =>
+    {
+      const [todos, setTodos] = React.useState([])
+      const [inputValue, setInputValue] = React.useState('')
+      const [filter, setFilter] = React.useState('all')
+      const [count, setCount] = React.useState(0)
+
+      // 问题1: 不必要的状态更新
+      React.useEffect(() =>
+      {
+        const interval = setInterval(() =>
+        {
+          setCount(c => c + 1)
+        }, 100) // 高频更新
+
+        return () => clearInterval(interval)
+      }, [])
+
+      // 问题2: 不必要的重新计算
+      const filteredTodos = React.useMemo(() =>
+      {
+        switch (filter) {
+          case 'completed':
+            return todos.filter(todo => todo.completed)
+          case 'active':
+            return todos.filter(todo => !todo.completed)
+          default:
+            return todos
+        }
+      }, [todos, filter])
+
+      const handleAdd = () =>
+      {
+        if (inputValue.trim()) {
+          setTodos([...todos, {
+            id: Date.now(),
+            text: inputValue,
+            completed: false
+          }])
+          setInputValue('')
+        }
+      }
+
+      const handleToggle = (id) =>
+      {
+        setTodos(todos.map(todo =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        ))
+      }
+
+      const handleDelete = (id) =>
+      {
+        setTodos(todos.filter(todo => todo.id !== id))
+      }
+
+      const handleKeyPress = (e) =>
+      {
+        if (e.key === 'Enter') {
+          handleAdd()
+        }
+      }
+
+      return (
+        <div className="todo-app">
+          <h2>React TodoMVC {count % 10 === 0 ? '🚀' : ''}</h2>
+
+          <div className="todo-header">
+            <input
+              className="todo-input"
+              type="text"
+              placeholder="添加新任务..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+            <button className="todo-add-btn" onClick={handleAdd}>添加</button>
+          </div>
+
+          {/* 问题3: 缺少React.memo */}
+          <TodoList
+            todos={filteredTodos}
+            onToggle={handleToggle}
+            onDelete={handleDelete}
+          />
+
+          <div className="filter-buttons">
+            <button
+              className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+              onClick={() => setFilter('all')}
+            >
+              全部
+            </button>
+            <button
+              className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
+              onClick={() => setFilter('active')}
+            >
+              未完成
+            </button>
+            <button
+              className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
+              onClick={() => setFilter('completed')}
+            >
+              已完成
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // 问题4: 子组件没有使用memo
+    const TodoList = ({ todos, onToggle, onDelete }) =>
+    {
+      // 问题5: 不必要的重新计算
+      const completedCount = todos.filter(todo => todo.completed).length
+
+      return (
+        <>
+          <ul className="todo-list">
+            {todos.map(todo => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={onToggle}
+                onDelete={onDelete}
+              />
+            ))}
+          </ul>
+          <div>
+            <p>已完成: {completedCount} / {todos.length}</p>
+          </div>
+        </>
+      )
+    }
+
+    // 问题6: 子组件没有使用memo
+    const TodoItem = ({ todo, onToggle, onDelete }) =>
+    {
+      // 问题7: 不必要的State
+      const [showDelete, setShowDelete] = React.useState(false)
+
+      return (
+        <li
+          className="todo-item"
+          onMouseEnter={() => setShowDelete(true)}
+          onMouseLeave={() => setShowDelete(false)}
+        >
+          <input
+            type="checkbox"
+            checked={todo.completed}
+            onChange={() => onToggle(todo.id)}
+          />
+          <span
+            className="todo-text"
+            style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}
+          >
+            {todo.text}
+          </span>
+          {showDelete && (
+            <button
+              className="todo-delete"
+              onClick={() => onDelete(todo.id)}
+            >
+              ✕
+            </button>
+          )}
+        </li>
+      )
+    }
+
+    // 渲染React应用
+    const root = ReactDOM.createRoot(document.getElementById('react-app'))
+    root.render(<TodoApp />)
+
+    // 更新性能信息显示
+    function updatePerformanceInfo ()
+    {
+      const reactApi = perfLite.getPlugin('react-profiler')?.api
+
+      if (reactApi) {
+        // 更新React信息
+        const reactInfo = document.getElementById('react-info')
+        reactInfo.innerHTML = `
+          <p>React版本: <strong>${reactApi.reactVersion}</strong></p>
+          <p>Concurrent Mode: <strong>${reactApi.isConcurrentMode ? '启用' : '未启用'}</strong></p>
+          <p>Profiler状态: <strong>${reactApi.isProfilerEnabled ? '激活' : '未激活'}</strong></p>
+          <p>监控组件数: <strong>${reactApi.getPerformanceInfo()?.totalComponents || 0}</strong></p>
+        `
+
+        // 更新性能问题列表
+        const issues = reactApi.getPerformanceInfo()?.performanceIssues || []
+        const issuesContainer = document.getElementById('performance-issues')
+
+        if (issues.length === 0) {
+          issuesContainer.innerHTML = '<p>暂未检测到性能问题。</p>'
+        } else {
+          let html = `
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>组件名称</th>
+                  <th>问题类型</th>
+                  <th>严重程度</th>
+                  <th>计数</th>
+                  <th>建议</th>
+                </tr>
+              </thead>
+              <tbody>
+          `
+
+          issues.forEach(issue =>
+          {
+            const problemTypes = {
+              'excessive-renders': '过多渲染',
+              'slow-render': '渲染缓慢',
+              'cascading-updates': '级联更新',
+              'high-memory': '内存占用高',
+              'state-thrashing': '状态频繁更新'
+            }
+
+            html += `
+              <tr>
+                <td><strong>${issue.componentName}</strong></td>
+                <td>${problemTypes[issue.type] || issue.type}</td>
+                <td><span class="status status-${issue.severity}">${issue.severity === 'high' ? '高' : issue.severity === 'medium' ? '中' : '低'}</span></td>
+                <td><span class="counter">${issue.count}</span></td>
+                <td>${issue.suggestion}</td>
+              </tr>
+            `
+          })
+
+          html += '</tbody></table>'
+          issuesContainer.innerHTML = html
+        }
+
+        // 更新慢组件表格
+        const slowComponents = reactApi.getPerformanceInfo()?.topSlowComponents || []
+        const slowTable = document.getElementById('slow-components')
+
+        slowTable.innerHTML = ''
+        slowComponents.forEach(comp =>
+        {
+          const row = document.createElement('tr')
+          row.innerHTML = `
+            <td>${comp.name}</td>
+            <td>${comp.avgDuration.toFixed(2)}</td>
+            <td>${comp.renderCount}</td>
+          `
+          slowTable.appendChild(row)
+        })
+
+        // 更新渲染次数表格
+        const renderCountComponents = reactApi.getPerformanceInfo()?.mostReRenderedComponents || []
+        const renderCountTable = document.getElementById('render-count-components')
+
+        renderCountTable.innerHTML = ''
+        renderCountComponents.forEach(comp =>
+        {
+          const row = document.createElement('tr')
+          row.innerHTML = `
+            <td>${comp.name}</td>
+            <td>${comp.renderCount}</td>
+          `
+          renderCountTable.appendChild(row)
+        })
+      }
+    }
+
+    // 5秒后更新性能信息，并之后定期更新
+    setTimeout(() =>
+    {
+      updatePerformanceInfo()
+      setInterval(updatePerformanceInfo, 3000)
+    }, 5000)
+
+    // 刷新按钮点击事件
+    document.getElementById('refresh-btn').addEventListener('click', updatePerformanceInfo)
+
+    // 重置按钮点击事件
+    document.getElementById('reset-btn').addEventListener('click', () =>
+    {
+      const reactApi = perfLite.getPlugin('react-profiler')?.api
+      if (reactApi) {
+        reactApi.resetData()
+        updatePerformanceInfo()
+      }
+    })
+
+    // 标签切换
+    document.querySelectorAll('.tab').forEach(tab =>
+    {
+      tab.addEventListener('click', () =>
+      {
+        // 更新活动标签
+        document.querySelector('.tab.active').classList.remove('active')
+        tab.classList.add('active')
+
+        // 切换内容显示
+        const tabId = tab.dataset.tab
+        document.querySelectorAll('.tab-content').forEach(content =>
+        {
+          content.style.display = 'none'
+        })
+        document.getElementById(`tab-${tabId}`).style.display = 'block'
+      })
+    });
+  </script>
+</body>
+
+</html>
