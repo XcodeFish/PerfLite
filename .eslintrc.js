@@ -15,6 +15,10 @@ module.exports = {
     'plugin:import/typescript',
   ],
   rules: {
+    // 缩进规则，完全禁用
+    indent: 'off',
+    '@typescript-eslint/indent': 'off',
+
     // SDK体积控制相关
     'no-duplicate-imports': 'error',
     'import/no-cycle': 'error',
@@ -78,4 +82,14 @@ module.exports = {
       },
     },
   },
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      rules: {
+        // 完全禁用缩进检查
+        indent: 'off',
+        '@typescript-eslint/indent': 'off',
+      },
+    },
+  ],
 };
